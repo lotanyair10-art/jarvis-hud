@@ -716,6 +716,7 @@ function renderSettings() {
     row('הודעות יזומות של ג׳רוויס', toggle('PROACTIVE')),
     row('מקסימום יזומות ביום', `<input class="input" type="number" min="0" max="10" data-key="PROACTIVE_MAX_PER_DAY" value="${esc(s.PROACTIVE_MAX_PER_DAY)}">`),
     row('תדריך קולי בבוקר', toggle('TIMETABLE_MORNING_CALL')),
+    row('שיחת טלפון דרך IFTTT', toggle('IFTTT_CALL')),
     row('שעת תדריך בוקר', `<input class="input" type="time" data-key="TIMETABLE_MORNING_TIME" value="${esc(s.TIMETABLE_MORNING_TIME)}">`),
     row('שעת מערכת לערב', `<input class="input" type="time" data-key="TIMETABLE_EVENING_TIME" value="${esc(s.TIMETABLE_EVENING_TIME)}">`),
     row('קול בטלגרם', `<select class="input" data-key="VOICE_NAME">${VOICES.map((v) => `<option ${v === s.VOICE_NAME ? 'selected' : ''}>${v}</option>`).join('')}</select>`),
@@ -1295,7 +1296,7 @@ function demoApi(name, p) {
   window.__demo = window.__demo || {
     reminders: [{ id: 'r1', text: 'להביא בגדי ספורט', when: iso(0) + 'T07:15', call: false }, { id: 'r2', text: 'מבחן במתמטיקה – להביא מחשבון', when: iso(1) + 'T07:00', call: true }],
     memory: [{ id: 'm1', fact: 'לומד בכיתה ט9 בבית ספר בית בירם בחיפה' }, { id: 'm2', fact: 'רוצה שיקראו לו אדוני' }],
-    settings: { TIMETABLE_EVENING_TIME: '20:00', TIMETABLE_MORNING_TIME: '06:30', TIMETABLE_MORNING_CALL: 'on', PROACTIVE: 'on', PROACTIVE_MAX_PER_DAY: '3', VOICE_NAME: 'Orus', VOICE_PITCH: '1', STOCKS: 'NVDA,^GSPC', OWNER_CLASS: 'ט9' },
+    settings: { IFTTT_CALL: 'off', TIMETABLE_EVENING_TIME: '20:00', TIMETABLE_MORNING_TIME: '06:30', TIMETABLE_MORNING_CALL: 'on', PROACTIVE: 'on', PROACTIVE_MAX_PER_DAY: '3', VOICE_NAME: 'Orus', VOICE_PITCH: '1', STOCKS: 'NVDA,^GSPC', OWNER_CLASS: 'ט9' },
   };
   const D = window.__demo;
   const lessons = [
