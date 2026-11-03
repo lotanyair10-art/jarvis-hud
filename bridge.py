@@ -100,6 +100,7 @@ class Bridge:
         self.director: C4Director | None = None
         self.token_at = 0.0
         self.kinds: dict[int, str] = {}
+        self.dimmable: set[int] = set()
 
     # ---------------------------------------------------------------- Control4
 
@@ -137,6 +138,7 @@ class Bridge:
                     "kind": kind, "dimmable": bool((it.get("capabilities") or {}).get("dimmer")) if kind == "light" else None,
                 }
         self.kinds = {d["id"]: d["kind"] for d in found.values()}
+        self.dimmable = {d["id"] for d in found.values() if d["dimmable"]}
         return list(found.values())
 
     async def light_status(self, device: int) -> dict:
@@ -156,8 +158,12 @@ class Bridge:
             light = C4Light(self.director, device)
             if action in ("on", "off", "level"):
                 level = 100 if action == "on" else 0 if action == "off" else max(0, min(100, int(float(value))))
-                await light.rampToLevel(level, 400)
-                return {"level": level}
+                if action == "level" and device in self.dimmable:
+                    await light.rampToLevel(level, 400)
+                else:
+                    await light.setLevel(level)  # plain (KNX) switches ignore ramps but accept SET_LEVEL
+                await asyncio.sleep(1)
+                return await self.light_status(device)
             return await self.light_status(device)
         if kind == "thermostat":
             climate = C4Climate(self.director, device)
