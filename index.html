@@ -515,6 +515,9 @@ let speechLang = store.get('lang', 'he-IL');
 const activity = [];
 
 /* ================================================================ API */
+// Jarvis's live deployment. Older /exec links keep running frozen old code, so a login saved with one of them
+// is moved here the first time it hits an API that old code doesn't know.
+const JARVIS_URL = 'https://script.google.com/macros/s/AKfycbxXuof7eOPvrA-_p1tpX5vvnFf2mRz9Kl4HqBu_s0iJBXmtgUXsASODqERca7EbDC0B/exec';
 async function api(name, payload = {}) {
   if (conn && conn.demo) return demoApi(name, payload);
   const res = await fetch(conn.url, {
@@ -524,6 +527,11 @@ async function api(name, payload = {}) {
   });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const out = await res.json();
+  if (!out.ok && /^Unknown api/.test(out.error || '') && conn.url !== JARVIS_URL) {
+    conn = { ...conn, url: JARVIS_URL };
+    store.set('conn', conn);
+    return api(name, payload);
+  }
   if (!out.ok) throw new Error(out.error === 'unauthorized' ? 'קוד גישה שגוי' : out.error);
   return out.data;
 }
