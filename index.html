@@ -1123,8 +1123,10 @@ function renderRoom() {
   const r = roomData;
   $('roomInfo').textContent = r.online ? r.room : r.room + ' · OFFLINE';
   if (!r.devices.length) { $('room').innerHTML = '<div class="empty">לא נמצאו מכשירים בחדר</div>'; return; }
-  const lights = r.devices.filter((d) => d.kind === 'light'), acs = r.devices.filter((d) => d.kind === 'thermostat');
-  const blinds = r.devices.filter((d) => d.kind === 'blind');
+  // keypads ("KNX Switch") and the raw HVAC gateway zone show up as devices but can't be controlled from here
+  const real = r.devices.filter((d) => !/^KNX Switch$|CoolMaster/i.test(d.name));
+  const lights = real.filter((d) => d.kind === 'light'), acs = real.filter((d) => d.kind === 'thermostat');
+  const blinds = real.filter((d) => d.kind === 'blind');
   $('room').innerHTML = lights.map((d) => {
     const on = lightOn(d.state), lvl = d.state && d.state.level != null ? d.state.level : null;
     return `<div class="dev ${on ? 'on' : ''}" data-light="${d.id}" role="button" tabindex="0" aria-pressed="${on}" aria-label="${esc(d.name)}">
