@@ -461,10 +461,11 @@ nav.mobile { display: none; }
 </div>
 <div id="win" class="hidden" role="dialog" aria-label="חלון אתר">
   <div class="bar"><b>WINDOW</b><span id="winUrl"></span>
+    <button class="icon-btn" id="winReader" title="מצב קריאה" aria-label="מצב קריאה">📖</button>
     <button class="icon-btn" id="winOpen" title="פתיחה בלשונית חדשה" aria-label="פתיחה בלשונית חדשה">↗</button>
     <button class="icon-btn" id="winClose" title="סגירה" aria-label="סגירת החלון">✕</button></div>
   <iframe id="winFrame" title="אתר" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation" allow="autoplay; fullscreen; encrypted-media"></iframe>
-  <div class="hint">אם החלון ריק, האתר חוסם הצגה בתוך אתרים אחרים – לחץ ↗ לפתיחה בלשונית חדשה. ג׳רוויס יכול גם לקרוא את האתר ולספר לך מה כתוב בו.</div>
+  <div class="hint" id="winHint">אם מופיע "refused to connect", האתר חוסם הצגה בתוך אתרים אחרים – לחץ 📖 למצב קריאה, או ↗ לפתיחה בלשונית חדשה.</div>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -766,7 +767,7 @@ function toast(text) {
 /* ================================================================ things Jarvis does on the screen */
 function runActions(actions) {
   actions.forEach((a) => {
-    if (a.type === 'open_url') openWindow(a.value);
+    if (a.type === 'open_url') (a.reader ? openReader(a.value) : openWindow(a.value));
     else if (a.type === 'theme') { accent = a.value === 'mark' ? 'mark' : 'arc'; document.documentElement.dataset.accent = accent; store.set('accent', accent); }
     else if (a.type === 'news_tab') { const b = document.querySelector('[data-news="' + a.value + '"]'); if (b) b.click(); showPanel('intel'); }
     else if (a.type === 'timetable') { const b = document.querySelector('[data-tt="' + a.value + '"]'); if (b) b.click(); showPanel('school'); }
@@ -793,10 +794,35 @@ let winUrl = '';
 function openWindow(url) {
   winUrl = url;
   $('winUrl').textContent = url;
+  $('winFrame').removeAttribute('srcdoc'); // srcdoc wins over src; drop a previous reader page
   $('winFrame').src = embeddable(url);
+  $('winHint').textContent = 'אם מופיע "refused to connect", האתר חוסם הצגה בתוך אתרים אחרים – לחץ 📖 למצב קריאה, או ↗ לפתיחה בלשונית חדשה.';
   $('win').classList.remove('hidden');
 }
-$('winClose').addEventListener('click', () => { $('win').classList.add('hidden'); $('winFrame').src = 'about:blank'; });
+/** For sites that refuse to be framed: Jarvis fetches the article and shows a clean copy in the window. */
+async function openReader(url) {
+  winUrl = url;
+  $('winUrl').textContent = '📖 ' + url;
+  $('win').classList.remove('hidden');
+  $('winHint').textContent = 'מצב קריאה: ג׳רוויס הביא את תוכן העמוד. לאתר המקורי – ↗';
+  const css = getComputedStyle(document.documentElement);
+  const page = (body) => `<!doctype html><html dir="auto"><head><meta charset="utf-8"><style>
+    body{margin:0;padding:28px clamp(16px,5vw,64px);background:#03101a;color:#d4f3ff;font:17px/1.75 Heebo,system-ui,sans-serif}
+    h1{font-size:26px;line-height:1.35;color:${css.getPropertyValue('--accent')};margin:0 0 16px}
+    img{max-width:100%;border:1px solid ${css.getPropertyValue('--line')};margin:0 0 18px} p{margin:0 0 14px}
+    a{color:${css.getPropertyValue('--accent')}} .muted{color:#6d97ab;font-size:13px}</style></head><body>${body}</body></html>`;
+  $('winFrame').srcdoc = page('<p class="muted">טוען עמוד...</p>');
+  try {
+    const r = await api('reader', { url });
+    $('winFrame').srcdoc = page(`<h1 dir="auto">${esc(r.title)}</h1>${r.image ? `<img src="${esc(r.image)}" alt="">` : ''}` +
+      r.paragraphs.map((t) => `<p dir="auto">${esc(t)}</p>`).join('') +
+      `<p class="muted"><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">לכתבה המקורית ↗</a></p>`);
+  } catch (e) {
+    $('winFrame').srcdoc = page(`<p>לא הצלחתי לקרוא את העמוד: ${esc(e.message)}</p><p><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">פתיחה בלשונית חדשה ↗</a></p>`);
+  }
+}
+$('winReader').addEventListener('click', () => { if (winUrl) openReader(winUrl); });
+$('winClose').addEventListener('click', () => { $('win').classList.add('hidden'); $('winFrame').removeAttribute('srcdoc'); $('winFrame').src = 'about:blank'; });
 $('winOpen').addEventListener('click', () => window.open(winUrl, '_blank', 'noopener'));
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('win').classList.contains('hidden')) $('winClose').click(); });
 
@@ -1304,6 +1330,8 @@ function demoApi(name, p) {
     case 'action': return wait('הדגמה – לא נשלח');
     case 'chat_reset': return wait('ok');
     case 'tts': return Promise.reject(new Error('demo'));
+    case 'reader': return wait({ url: p.url, title: 'נהג שיכור במלגזה - ודרס למוות את חברו', image: '',
+      paragraphs: ['אזרח סרי לנקה (26) נאשם שנהג במלגזה כשהוא תחת השפעת אלכוהול ודרס למוות עובד אחר.', 'כתב האישום הוגש על ידי פרקליטות מחוז צפון.', 'זהו טקסט הדגמה של מצב קריאה.'] }, 600);
     case 'news': return wait({ updated: '13:40',
       israel: [{ title: 'ראשי גוש השינוי: "נפעל מיידית לגיבוש קווי היסוד"', source: 'Ynet מבזקים', link: 'https://www.ynet.co.il', time: Date.now() - 12 * 60000 },
                { title: 'Defense Ministry to conduct exercise on Highway 35', source: 'Jerusalem Post', link: 'https://www.jpost.com', time: Date.now() - 50 * 60000 }],
