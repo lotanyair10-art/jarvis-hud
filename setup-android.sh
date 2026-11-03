@@ -14,7 +14,7 @@ curl -sL "$SRC/bridge.py" -o "$DIR/bridge.py"
 curl -sL "$SRC/run.sh" -o "$DIR/run.sh"; chmod +x "$DIR/run.sh"
 echo ">> Installing libraries (pure Python, no compiler needed)..."
 export AIOHTTP_NO_EXTENSIONS=1 FROZENLIST_NO_EXTENSIONS=1 MULTIDICT_NO_EXTENSIONS=1 YARL_NO_EXTENSIONS=1 PROPCACHE_NO_EXTENSIONS=1
-pip install -q --no-binary aiohttp,multidict,yarl,frozenlist,propcache "pyControl4==1.5.0" python-dotenv aiohttp
+pip install -q --no-binary aiohttp,multidict,yarl,frozenlist,propcache "pyControl4==1.5.0" python-dotenv aiohttp async-timeout
 if [ ! -f "$DIR/.env" ]; then
   echo ""
   printf "Control4 email (my.control4.com): "; read C4U < /dev/tty

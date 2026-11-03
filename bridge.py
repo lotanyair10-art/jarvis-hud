@@ -19,6 +19,13 @@ from pathlib import Path
 
 import aiohttp
 from dotenv import load_dotenv
+
+try:
+    import async_timeout  # noqa: F401  pyControl4 imports it; newer Pythons don't get it with aiohttp
+except ImportError:
+    import types
+    sys.modules["async_timeout"] = types.ModuleType("async_timeout")
+
 import pyControl4.account
 import pyControl4.director
 from pyControl4.account import C4Account
