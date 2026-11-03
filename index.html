@@ -242,6 +242,27 @@ input[type="datetime-local"].input, input[type="time"].input { direction: ltr; c
 }
 #toast.show { opacity: 1; transform: translateX(-50%); }
 
+/* my room */
+.devgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.dev {
+  border: 1px solid var(--line); background: rgba(0, 0, 0, 0.3); padding: 10px; text-align: center; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 92px; justify-content: center;
+  transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.dev:hover { border-color: var(--line-strong); }
+.dev .ico { font-size: 24px; line-height: 1; filter: grayscale(1) opacity(0.5); transition: filter 0.2s; }
+.dev .nm { font-size: 12px; }
+.dev .st { font: 700 11px "Rajdhani", sans-serif; letter-spacing: 0.1em; color: var(--muted); direction: ltr; }
+.dev.on { background: rgba(var(--accent-rgb), 0.14); border-color: var(--accent); box-shadow: inset 0 0 18px rgba(var(--accent-rgb), 0.25); }
+.dev.on .ico { filter: none; }
+.dev.on .st { color: var(--accent); }
+.dev.busy { opacity: 0.55; pointer-events: none; }
+.dev input[type=range] { width: 100%; accent-color: var(--accent); }
+.ac { grid-column: span 2; cursor: default; }
+.ac .temp { font: 700 26px "Orbitron", sans-serif; color: var(--accent); direction: ltr; }
+.ac .row { display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.ac .row .btn { padding: 4px 10px; }
+
 /* news */
 .news li { align-items: flex-start; }
 .news a { color: var(--text); text-decoration: none; }
@@ -398,6 +419,10 @@ nav.mobile { display: none; }
 
     <!-- right: life -->
     <section class="col side" data-group="life">
+      <div class="panel" style="animation-delay:.1s"><div class="sweep"></div>
+        <h2><span>MY ROOM</span><span class="tools"><span class="count" id="roomInfo"></span><button class="tab" id="roomRefresh" title="רענון">SYNC</button></span></h2>
+        <div class="devgrid" id="room"><div class="empty">טוען את החדר...</div></div>
+      </div>
       <div class="panel" style="animation-delay:.12s"><div class="sweep"></div>
         <h2><span>REMINDERS</span><span class="count" id="remCount"></span></h2>
         <ul class="list" id="reminders"></ul>
@@ -854,6 +879,7 @@ async function send(text, viaVoice) {
     addMsg('jarvis', reply);
     runActions(actions || []);
     if (changed) refresh(true);
+    if (/אור|מזגן|תריס|light|ac\b|blind|כבה|הדלק|תדליק|תכבה/i.test(text)) loadRoom(true);
     if (viaVoice || $('speakAll').checked) await speak(reply, conversation);
     else setMode('idle');
   } catch (e) {
@@ -1081,6 +1107,82 @@ $('testVoiceEn').addEventListener('click', () => { unlockAudio(); speak('At your
 $('testVoiceHe').addEventListener('click', () => { unlockAudio(); speak('לשירותך, אדוני. כל המערכות פועלות כרגיל.'); });
 if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = fillVoiceSettings;
 
+/* ================================================================ my room (Control4 through the home bridge) */
+let roomData = null;
+async function loadRoom(quiet) {
+  try {
+    roomData = await api('home_room');
+    renderRoom();
+  } catch (e) {
+    if (!quiet) toast('⚠ ' + e.message);
+    $('room').innerHTML = `<div class="empty">⚠ ${esc(e.message)}</div>`;
+  }
+}
+function lightOn(st) { return st && (st.on === true || Number(st.level) > 0); }
+function renderRoom() {
+  const r = roomData;
+  $('roomInfo').textContent = r.online ? r.room : r.room + ' · OFFLINE';
+  if (!r.devices.length) { $('room').innerHTML = '<div class="empty">לא נמצאו מכשירים בחדר</div>'; return; }
+  const lights = r.devices.filter((d) => d.kind === 'light'), acs = r.devices.filter((d) => d.kind === 'thermostat');
+  const blinds = r.devices.filter((d) => d.kind === 'blind');
+  $('room').innerHTML = lights.map((d) => {
+    const on = lightOn(d.state), lvl = d.state && d.state.level != null ? d.state.level : null;
+    return `<div class="dev ${on ? 'on' : ''}" data-light="${d.id}" role="button" tabindex="0" aria-pressed="${on}" aria-label="${esc(d.name)}">
+      <span class="ico">💡</span><span class="nm">${esc(d.name)}</span>
+      <span class="st">${!r.online ? '—' : d.state ? (on ? (lvl != null && lvl < 100 ? lvl + '%' : 'ON') : 'OFF') : '?'}</span>
+      ${d.dim ? `<input type="range" min="0" max="100" step="5" value="${lvl || 0}" data-dim="${d.id}" aria-label="עוצמה">` : ''}</div>`;
+  }).join('') + acs.map((d) => {
+    const st = d.state || {}, set = st.cool_c != null ? st.cool_c : st.heat_c;
+    const mode = String(st.mode || '—');
+    return `<div class="dev ac ${/off/i.test(mode) || mode === '—' ? '' : 'on'}" data-ac="${d.id}">
+      <span class="nm">❄️ ${esc(d.name)}</span>
+      <span class="temp">${set != null ? Math.round(set) + '°' : '—'}</span>
+      <span class="st">${st.current_c != null ? 'NOW ' + Math.round(st.current_c) + '° · ' : ''}${esc(mode.toUpperCase())}</span>
+      <div class="row">
+        <button class="btn small" data-actemp="-1" aria-label="להוריד מעלה">−</button>
+        <button class="btn small" data-actemp="1" aria-label="להעלות מעלה">+</button>
+        <button class="btn small" data-acmode="Cool">COOL</button>
+        <button class="btn small" data-acmode="Heat">HEAT</button>
+        <button class="btn small" data-acmode="Off">OFF</button>
+      </div></div>`;
+  }).join('') + blinds.map((d) => `<div class="dev" data-blind="${d.id}"><span class="ico">🪟</span><span class="nm">${esc(d.name)}</span>
+      <div class="row"><button class="btn small" data-bl="open">▲</button><button class="btn small" data-bl="stop">■</button><button class="btn small" data-bl="close">▼</button></div></div>`).join('');
+}
+async function roomCmd(el, device_id, action, value) {
+  el.classList.add('busy');
+  try {
+    const res = await api('home_cmd', { device_id, action, value });
+    const d = roomData.devices.find((x) => x.id === device_id);
+    if (d) d.state = Object.assign({}, d.state || {}, res, action === 'off' && d.kind === 'light' ? { on: false, level: 0 } : action === 'on' ? { on: true } : {});
+    renderRoom();
+    logActivity('בית: ' + (d ? d.name : device_id) + ' → ' + action + (value != null ? ' ' + value : ''));
+  } catch (e) { toast('⚠ ' + e.message); el.classList.remove('busy'); }
+}
+$('room').addEventListener('click', (e) => {
+  const light = e.target.closest('[data-light]');
+  if (light && e.target.type !== 'range') {
+    const id = Number(light.dataset.light), d = roomData.devices.find((x) => x.id === id);
+    roomCmd(light, id, lightOn(d.state) ? 'off' : 'on');
+    return;
+  }
+  const ac = e.target.closest('[data-ac]');
+  if (ac) {
+    const id = Number(ac.dataset.ac), d = roomData.devices.find((x) => x.id === id), st = d.state || {};
+    if (e.target.dataset.actemp) {
+      const cur = st.cool_c != null ? st.cool_c : st.heat_c != null ? st.heat_c : 24;
+      roomCmd(ac, id, 'set_temperature', String(Math.round(cur) + Number(e.target.dataset.actemp)));
+    } else if (e.target.dataset.acmode) roomCmd(ac, id, 'hvac_mode', e.target.dataset.acmode);
+    return;
+  }
+  const bl = e.target.closest('[data-blind]');
+  if (bl && e.target.dataset.bl) roomCmd(bl, Number(bl.dataset.blind), e.target.dataset.bl);
+});
+$('room').addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset.light) { e.preventDefault(); e.target.click(); } });
+$('room').addEventListener('change', (e) => {
+  if (e.target.dataset.dim) roomCmd(e.target.closest('.dev'), Number(e.target.dataset.dim), 'level', e.target.value);
+});
+$('roomRefresh').addEventListener('click', () => loadRoom());
+
 /* ================================================================ news */
 let newsData = null, newsCat = 'israel';
 const seenNews = new Set(store.get('seenNews', []));
@@ -1283,6 +1385,8 @@ function start() {
   setInterval(() => refresh(true), 60000);
   fillVoiceSettings();
   loadNews(true);
+  loadRoom(true);
+  setInterval(() => loadRoom(true), 2 * 60000);
   setInterval(() => loadNews(true), 5 * 60000);
   if (!SR) addMsg('sys', 'הדפדפן הזה לא תומך בדיבור. אפשר לכתוב, או לפתוח ב-Chrome / Safari.');
 }
@@ -1331,6 +1435,19 @@ function demoApi(name, p) {
     case 'action': return wait('הדגמה – לא נשלח');
     case 'chat_reset': return wait('ok');
     case 'tts': return Promise.reject(new Error('demo'));
+    case 'home_room': return wait({ room: 'Yair Room', online: true, devices: (window.__room = window.__room || [
+      { id: 203, name: 'Ceiling', room: 'Yair Room', kind: 'light', dim: false, state: { on: true } },
+      { id: 204, name: 'Desk', room: 'Yair Room', kind: 'light', dim: true, state: { level: 60 } },
+      { id: 205, name: 'Bed', room: 'Yair Room', kind: 'light', dim: false, state: { on: false } },
+      { id: 250, name: 'AC', room: 'Yair Room', kind: 'thermostat', state: { mode: 'Cool', current_c: 25, cool_c: 23 } }]) }, 600);
+    case 'home_cmd': {
+      const d = window.__room.find((x) => x.id === p.device_id);
+      if (p.action === 'on' || p.action === 'off') d.state = { on: p.action === 'on', level: p.action === 'on' ? 100 : 0 };
+      if (p.action === 'level') d.state = { level: Number(p.value) };
+      if (p.action === 'set_temperature') d.state = Object.assign({}, d.state, { cool_c: Number(p.value) });
+      if (p.action === 'hvac_mode') d.state = Object.assign({}, d.state, { mode: p.value });
+      return wait(d.state, 400);
+    }
     case 'reader': return wait({ url: p.url, title: 'נהג שיכור במלגזה - ודרס למוות את חברו', image: '',
       paragraphs: ['אזרח סרי לנקה (26) נאשם שנהג במלגזה כשהוא תחת השפעת אלכוהול ודרס למוות עובד אחר.', 'כתב האישום הוגש על ידי פרקליטות מחוז צפון.', 'זהו טקסט הדגמה של מצב קריאה.'] }, 600);
     case 'news': return wait({ updated: '13:40',
