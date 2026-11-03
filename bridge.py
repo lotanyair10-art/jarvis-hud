@@ -139,6 +139,16 @@ class Bridge:
         self.kinds = {d["id"]: d["kind"] for d in found.values()}
         return list(found.values())
 
+    async def light_status(self, device: int) -> dict:
+        """Dimmers report LIGHT_LEVEL (or Brightness Percent on newer lights); plain switches only LIGHT_STATE."""
+        for variable in ("LIGHT_LEVEL", "Brightness Percent"):
+            try:
+                return {"level": int(float(await self.director.getItemVariableValue(device, variable)))}
+            except Exception:
+                continue
+        on = await self.director.getItemVariableValue(device, "LIGHT_STATE")
+        return {"on": str(on) not in ("0", "False", "false", "")}
+
     async def run_command(self, cmd: dict) -> dict:
         device, action, value = int(cmd["device_id"]), cmd["action"], cmd.get("value")
         kind = self.kinds.get(device)
@@ -148,7 +158,7 @@ class Bridge:
                 level = 100 if action == "on" else 0 if action == "off" else max(0, min(100, int(float(value))))
                 await light.rampToLevel(level, 400)
                 return {"level": level}
-            return {"level": await light.getLevel()}
+            return await self.light_status(device)
         if kind == "thermostat":
             climate = C4Climate(self.director, device)
             if action == "set_temperature":
