@@ -1,0 +1,1092 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#02060c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JARVIS">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%2302060c' stroke='%2300d8ff' stroke-width='4'/%3E%3Ccircle cx='32' cy='32' r='11' fill='%2300d8ff'/%3E%3C/svg%3E">
+<title>J.A.R.V.I.S.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #02060c;
+  --bg2: #041320;
+  --panel: rgba(3, 20, 32, 0.66);
+  --panel-solid: #04131f;
+  --line: rgba(0, 216, 255, 0.22);
+  --line-strong: rgba(0, 216, 255, 0.7);
+  --accent: #00d8ff;
+  --accent-rgb: 0, 216, 255;
+  --accent-2: #7af3ff;
+  --soft: rgba(0, 216, 255, 0.1);
+  --warn: #ffb02e;
+  --danger: #ff4d5e;
+  --ok: #3dffa8;
+  --text: #d4f3ff;
+  --muted: #6d97ab;
+  --glow: 0 0 14px rgba(0, 216, 255, 0.45);
+  --radius: 0;
+}
+:root[data-accent="mark"] {
+  --accent: #ffc23d;
+  --accent-rgb: 255, 194, 61;
+  --accent-2: #ffe3a1;
+  --line: rgba(255, 194, 61, 0.22);
+  --line-strong: rgba(255, 194, 61, 0.7);
+  --soft: rgba(255, 194, 61, 0.1);
+  --glow: 0 0 14px rgba(255, 140, 40, 0.5);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 "Heebo", system-ui, sans-serif;
+  overflow-x: hidden;
+}
+#bgfx { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background:
+    repeating-linear-gradient(0deg, rgba(var(--accent-rgb), 0.03) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.65) 100%);
+}
+.mono { font-family: "Orbitron", sans-serif; letter-spacing: 0.14em; direction: ltr; unicode-bidi: isolate; }
+.cond { font-family: "Rajdhani", sans-serif; letter-spacing: 0.06em; }
+button, input, select { font: inherit; color: inherit; }
+a { color: var(--accent); }
+.hidden { display: none !important; }
+
+/* ---------- boot + login ---------- */
+#boot, #login {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: var(--bg);
+}
+#boot pre {
+  font: 600 14px/1.8 "Rajdhani", monospace; color: var(--accent); text-shadow: var(--glow);
+  direction: ltr; text-align: left; min-width: min(420px, 86vw); margin: 0;
+}
+#boot .bar { height: 2px; background: var(--soft); margin-top: 18px; overflow: hidden; }
+#boot .bar i { display: block; height: 100%; width: 0; background: var(--accent); box-shadow: var(--glow); transition: width 0.25s; }
+#login .card { width: min(440px, calc(100vw - 32px)); padding: 30px 26px; text-align: center; animation: none; }
+#login h1 { margin: 0 0 4px; font-size: 26px; color: var(--accent); text-shadow: var(--glow); }
+#login p { color: var(--muted); margin: 6px 0 18px; font-size: 14px; }
+#login .input { width: 100%; }
+#login label { display: block; text-align: right; font-size: 12px; color: var(--muted); margin: 12px 0 4px; }
+#login .row { display: flex; gap: 8px; margin-top: 18px; }
+#login .err { color: var(--danger); min-height: 20px; margin-top: 10px; font-size: 13px; }
+
+/* ---------- frame ---------- */
+.app { position: relative; z-index: 2; min-height: 100vh; display: flex; flex-direction: column; }
+header {
+  display: flex; align-items: center; gap: 16px; padding: 12px 22px;
+  border-bottom: 1px solid var(--line); background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.06), transparent);
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand .logo { width: 34px; height: 34px; }
+.brand h1 { margin: 0; font-size: 19px; color: var(--accent); text-shadow: var(--glow); }
+.brand small { display: block; color: var(--muted); font-size: 11px; letter-spacing: 0.2em; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-inline-start: auto; }
+.chip {
+  font: 600 11px "Rajdhani", sans-serif; letter-spacing: 0.12em; padding: 3px 9px; border: 1px solid var(--line);
+  color: var(--muted); direction: ltr; display: inline-flex; align-items: center; gap: 6px;
+}
+.chip i { width: 7px; height: 7px; border-radius: 50%; background: #29404c; }
+.chip.on { color: var(--text); border-color: var(--line-strong); }
+.chip.on i { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.clock { text-align: left; direction: ltr; min-width: 130px; }
+.clock b { display: block; font: 700 22px "Orbitron", sans-serif; color: var(--accent); text-shadow: var(--glow); letter-spacing: 0.08em; }
+.clock span { color: var(--muted); font-size: 12px; }
+.icon-btn {
+  width: 36px; height: 36px; display: grid; place-items: center; background: transparent; border: 1px solid var(--line);
+  cursor: pointer; color: var(--accent); flex: none;
+}
+.icon-btn:hover, .icon-btn:focus-visible { border-color: var(--line-strong); box-shadow: var(--glow); outline: none; }
+
+main {
+  flex: 1; display: grid; gap: 16px; padding: 16px 22px 22px;
+  grid-template-columns: minmax(270px, 1fr) minmax(380px, 1.3fr) minmax(270px, 1fr);
+  grid-template-rows: auto 1fr;
+  align-items: start;
+}
+/* three columns: school | reactor | life above system */
+.col[data-group="school"] { grid-column: 1; grid-row: 1 / span 2; }
+.center { grid-column: 2; grid-row: 1 / span 2; }
+.col[data-group="life"] { grid-column: 3; grid-row: 1; }
+.col[data-group="system"] { grid-column: 3; grid-row: 2; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* ---------- panels ---------- */
+.panel {
+  position: relative; background: var(--panel); border: 1px solid var(--line); padding: 14px 16px 14px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+  animation: panelIn 0.6s both;
+}
+.panel::before, .panel::after { content: ""; position: absolute; width: 22px; height: 22px; border: 2px solid var(--accent); pointer-events: none; }
+.panel::before { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
+.panel::after { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
+.panel .sweep {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.panel .sweep::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 40%; top: -40%;
+  background: linear-gradient(180deg, transparent, rgba(var(--accent-rgb), 0.07), transparent);
+  animation: sweep 7s linear infinite;
+}
+@keyframes sweep { to { top: 140%; } }
+@keyframes panelIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.panel h2 {
+  margin: 0 0 10px; font: 700 11px "Orbitron", sans-serif; letter-spacing: 0.22em; color: var(--accent);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; direction: ltr;
+}
+.panel h2 .count { color: var(--muted); font-weight: 500; }
+.panel h2 .tools { display: flex; gap: 6px; }
+.tab {
+  background: transparent; border: 1px solid var(--line); color: var(--muted); padding: 2px 9px; cursor: pointer;
+  font: 600 11px "Rajdhani", sans-serif; letter-spacing: 0.12em;
+}
+.tab.on { color: #001018; background: var(--accent); border-color: var(--accent); }
+.list { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; scrollbar-width: thin; }
+.list li { padding: 8px 2px; border-bottom: 1px dashed rgba(var(--accent-rgb), 0.12); display: flex; gap: 10px; align-items: flex-start; }
+.list li:last-child { border-bottom: 0; }
+.list .grow { flex: 1; min-width: 0; }
+.meta { color: var(--muted); font-size: 12px; }
+.empty { color: var(--muted); font-size: 13px; padding: 6px 0; }
+.date-chip {
+  flex: none; font: 700 12px "Rajdhani", sans-serif; letter-spacing: 0.06em; color: var(--accent); border: 1px solid var(--line);
+  padding: 1px 7px; direction: ltr; min-width: 52px; text-align: center;
+}
+.x { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0 4px; font-size: 15px; }
+.x:hover { color: var(--danger); }
+
+/* timetable */
+.lesson .num { font: 700 15px "Orbitron", sans-serif; color: var(--accent); width: 22px; text-align: center; flex: none; }
+.lesson .time { direction: ltr; font: 600 12px "Rajdhani", sans-serif; color: var(--muted); flex: none; width: 74px; text-align: left; }
+.lesson.now { background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.12)); }
+.lesson.now .num { text-shadow: var(--glow); }
+.lesson.cancel .subject { text-decoration: line-through; color: var(--muted); }
+.badge { display: inline-block; font-size: 11px; padding: 0 6px; margin-top: 3px; border: 1px solid; }
+.badge.cancel { color: var(--danger); border-color: rgba(255, 77, 94, 0.5); }
+.badge.change { color: var(--warn); border-color: rgba(255, 176, 46, 0.5); }
+.dayprog { height: 3px; background: var(--soft); margin: 2px 0 10px; position: relative; overflow: hidden; }
+.dayprog i { position: absolute; inset: 0 auto 0 0; background: var(--accent); box-shadow: var(--glow); }
+
+/* reactor + comms */
+.center { align-items: stretch; }
+.reactor-wrap { position: relative; display: grid; place-items: center; padding-top: 4px; }
+#reactor { width: min(100%, 440px); aspect-ratio: 1; cursor: pointer; touch-action: manipulation; }
+.reactor-label { position: absolute; bottom: 8px; text-align: center; pointer-events: none; }
+#stateLabel { font: 700 12px "Orbitron", sans-serif; letter-spacing: 0.3em; color: var(--accent); text-shadow: var(--glow); }
+#heard { min-height: 22px; color: var(--accent-2); font-size: 14px; margin-top: 4px; max-width: 360px; }
+.controls { display: flex; gap: 10px; justify-content: center; margin: 6px 0 2px; flex-wrap: wrap; }
+.btn {
+  background: transparent; color: var(--accent); border: 1px solid var(--line-strong); padding: 9px 16px; cursor: pointer;
+  font: 700 12px "Orbitron", sans-serif; letter-spacing: 0.14em; direction: ltr;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+.btn:hover, .btn:focus-visible { background: var(--soft); box-shadow: var(--glow); outline: none; }
+.btn.primary { background: var(--accent); color: #001018; }
+.btn.live { background: var(--danger); border-color: var(--danger); color: #fff; animation: pulse 1.4s infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 22px rgba(255, 77, 94, 0.7); } }
+.btn.small { padding: 6px 10px; font-size: 10px; }
+#log { max-height: 34vh; min-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 2px 10px; }
+.msg { max-width: 88%; padding: 9px 13px; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; animation: panelIn 0.35s both; }
+.msg .who { display: block; font: 700 9px "Orbitron", sans-serif; letter-spacing: 0.2em; color: var(--accent); margin-bottom: 3px; }
+.msg.me { align-self: flex-start; background: var(--soft); border: 1px solid var(--line); }
+.msg.jarvis { align-self: flex-end; border-inline-end: 2px solid var(--accent); background: rgba(0, 0, 0, 0.35); }
+.msg.sys { align-self: center; color: var(--muted); font-size: 12px; padding: 2px; }
+.typing span { display: inline-block; width: 6px; height: 6px; margin: 0 2px; background: var(--accent); border-radius: 50%; animation: blink 1s infinite; }
+.typing span:nth-child(2) { animation-delay: 0.15s; } .typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes blink { 50% { opacity: 0.2; } }
+form.say { display: flex; gap: 8px; }
+.input {
+  flex: 1; min-width: 0; background: rgba(0, 0, 0, 0.45); border: 1px solid var(--line); padding: 10px 12px; outline: none;
+}
+.input:focus { border-color: var(--line-strong); box-shadow: var(--glow); }
+select.input { padding: 8px; }
+.switches { display: flex; gap: 14px; justify-content: space-between; flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.switches label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+
+/* stocks */
+.stock { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 8px 0; border-bottom: 1px dashed rgba(var(--accent-rgb), 0.12); }
+.stock:last-child { border-bottom: 0; }
+.stock .name { font-weight: 500; }
+.stock .px { font: 700 15px "Rajdhani", sans-serif; direction: ltr; text-align: left; }
+.stock .chg { font: 700 13px "Rajdhani", sans-serif; direction: ltr; text-align: left; }
+.up { color: var(--ok); } .down { color: var(--danger); }
+.stock svg { grid-column: 1 / -1; width: 100%; height: 34px; }
+
+/* forms in panels */
+.addform { display: grid; gap: 6px; margin-top: 10px; }
+.addform .row { display: flex; gap: 6px; }
+input[type="datetime-local"].input, input[type="time"].input { direction: ltr; color-scheme: dark; }
+.setting { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px dashed rgba(var(--accent-rgb), 0.12); }
+.setting:last-child { border-bottom: 0; }
+.setting .input { max-width: 150px; padding: 6px 8px; }
+.toggle { position: relative; width: 42px; height: 22px; flex: none; }
+.toggle input { opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; position: absolute; z-index: 1; }
+.toggle i { position: absolute; inset: 0; border: 1px solid var(--line-strong); }
+.toggle i::after { content: ""; position: absolute; top: 3px; right: 3px; width: 14px; height: 14px; background: var(--muted); transition: 0.2s; }
+.toggle input:checked + i { background: var(--soft); }
+.toggle input:checked + i::after { right: 23px; background: var(--accent); box-shadow: var(--glow); }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+#toast {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px); z-index: 60; opacity: 0;
+  background: var(--panel-solid); border: 1px solid var(--line-strong); padding: 10px 16px; box-shadow: var(--glow);
+  transition: 0.3s; pointer-events: none; max-width: calc(100vw - 32px);
+}
+#toast.show { opacity: 1; transform: translateX(-50%); }
+
+/* mobile tabs */
+nav.mobile { display: none; }
+
+@media (max-width: 1180px) {
+  main { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto 1fr; }
+  .center { grid-column: 1 / -1; grid-row: 1; }
+  .col[data-group="school"] { grid-column: 1; grid-row: 2 / span 2; }
+  .col[data-group="life"] { grid-column: 2; grid-row: 2; }
+  .col[data-group="system"] { grid-column: 2; grid-row: 3; }
+}
+@media (max-width: 760px) {
+  header { padding: 10px 16px; gap: 10px; flex-wrap: wrap; }
+  .chips { order: 3; width: 100%; margin: 0; }
+  .clock { margin-inline-start: auto; min-width: 0; }
+  .clock b { font-size: 18px; }
+  main { grid-template-columns: 1fr; grid-template-rows: auto; padding: 12px 16px 84px; }
+  main > .col { grid-column: 1 !important; grid-row: auto !important; }
+  .col.side { display: none; }
+  .col.side.active { display: flex; }
+  .center.inactive { display: none; }
+  #reactor { width: min(100%, 300px); }
+  #log { max-height: 30vh; }
+  nav.mobile {
+    display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+    background: rgba(2, 8, 14, 0.94); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
+  }
+  nav.mobile button { background: none; border: 0; padding: 10px 0 9px; color: var(--muted); font: 700 10px "Orbitron", sans-serif; letter-spacing: 0.12em; cursor: pointer; }
+  nav.mobile button.on { color: var(--accent); text-shadow: var(--glow); }
+  nav.mobile svg { display: block; margin: 0 auto 3px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<canvas id="bgfx"></canvas>
+
+<!-- boot sequence -->
+<div id="boot" class="hidden"><div><pre id="bootText"></pre><div class="bar"><i id="bootBar"></i></div></div></div>
+
+<!-- login -->
+<div id="login" class="hidden">
+  <div class="panel card">
+    <h1 class="mono">J.A.R.V.I.S.</h1>
+    <p>חיבור לג׳רוויס שרץ ב-Google</p>
+    <form id="loginForm" autocomplete="off">
+      <label for="urlIn">כתובת ג׳רוויס (Web app URL, נגמרת ב-/exec)</label>
+      <input id="urlIn" class="input" dir="ltr" placeholder="https://script.google.com/macros/s/.../exec" required>
+      <label for="tokIn">קוד גישה (DASHBOARD_TOKEN)</label>
+      <input id="tokIn" class="input" dir="ltr" type="password" required>
+      <div class="row">
+        <button class="btn primary" style="flex:1" type="submit">CONNECT</button>
+        <button class="btn" type="button" id="demoBtn">DEMO</button>
+      </div>
+      <div class="err" id="loginErr"></div>
+    </form>
+  </div>
+</div>
+
+<div class="app hidden" id="app">
+  <header>
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="3" style="color:var(--accent)"/><circle cx="32" cy="32" r="18" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="6 4" style="color:var(--accent)"/><circle cx="32" cy="32" r="8" fill="currentColor" style="color:var(--accent)"/></svg>
+      <div><h1 class="mono">J.A.R.V.I.S.</h1><small class="cond">JUST A RATHER VERY INTELLIGENT SYSTEM</small></div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="clock"><b id="clock">--:--:--</b><span id="dateLine"></span> <span id="weather"></span></div>
+    <button class="icon-btn" id="accentBtn" title="ערכת צבעים" aria-label="החלפת ערכת צבעים">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg>
+    </button>
+    <button class="icon-btn" id="logoutBtn" title="התנתקות" aria-label="התנתקות">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>
+    </button>
+  </header>
+
+  <main>
+    <!-- left: school -->
+    <section class="col side" data-group="school">
+      <div class="panel"><div class="sweep"></div>
+        <h2><span>TIMETABLE</span><span class="tools"><button class="tab on" data-tt="today">TODAY</button><button class="tab" data-tt="tomorrow">TOMORROW</button></span></h2>
+        <div id="ttTitle" class="meta"></div>
+        <div class="dayprog" id="dayprog"><i style="width:0"></i></div>
+        <ul class="list" id="timetable"></ul>
+      </div>
+      <div class="panel" style="animation-delay:.08s"><div class="sweep"></div>
+        <h2><span>SCHOOL BOARD</span><span class="count" id="boardCount"></span></h2>
+        <div id="board"></div>
+      </div>
+    </section>
+
+    <!-- center: reactor + comms -->
+    <section class="col center" id="centerCol">
+      <div class="reactor-wrap">
+        <canvas id="reactor" role="button" aria-label="שיחה קולית עם ג׳רוויס" tabindex="0"></canvas>
+        <div class="reactor-label"><div id="stateLabel">STANDBY</div><div id="heard"></div></div>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="talkBtn">TALK</button>
+        <button class="btn" id="langBtn" title="שפת דיבור">HE</button>
+        <button class="btn" id="stopBtn">STOP</button>
+      </div>
+      <div class="panel" style="animation-delay:.04s"><div class="sweep"></div>
+        <h2><span>COMMS</span><span class="tools"><button class="tab" id="resetChat" title="שיחה חדשה">NEW</button></span></h2>
+        <div id="log"></div>
+        <form class="say" id="sayForm">
+          <input class="input" id="sayIn" placeholder="דבר איתי, אדוני..." autocomplete="off">
+          <button class="btn primary" type="submit">SEND</button>
+        </form>
+        <div class="switches">
+          <label><input type="checkbox" id="speakAll"> הקרא גם תשובות כתובות</label>
+          <label><input type="checkbox" id="orusVoice"> קול Orus אמיתי (מוגבל ~10 ביום)</label>
+        </div>
+      </div>
+    </section>
+
+    <!-- right: life -->
+    <section class="col side" data-group="life">
+      <div class="panel" style="animation-delay:.12s"><div class="sweep"></div>
+        <h2><span>REMINDERS</span><span class="count" id="remCount"></span></h2>
+        <ul class="list" id="reminders"></ul>
+        <form class="addform" id="remForm">
+          <input class="input" id="remText" placeholder="תזכורת חדשה..." required>
+          <div class="row">
+            <input class="input" id="remWhen" type="datetime-local" required>
+            <label class="meta" style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="remCall">📞</label>
+            <button class="btn small primary" type="submit">ADD</button>
+          </div>
+        </form>
+      </div>
+      <div class="panel" style="animation-delay:.16s"><div class="sweep"></div>
+        <h2><span>MARKETS</span><span class="count" id="mktDate"></span></h2>
+        <div id="stocks"></div>
+      </div>
+    </section>
+
+    <section class="col side" data-group="system">
+      <div class="panel" style="animation-delay:.2s"><div class="sweep"></div>
+        <h2><span>MEMORY</span><span class="count" id="memCount"></span></h2>
+        <ul class="list" id="memory"></ul>
+        <form class="addform" id="memForm"><div class="row">
+          <input class="input" id="memText" placeholder="משהו שג׳רוויס צריך לזכור..." required>
+          <button class="btn small primary" type="submit">SAVE</button>
+        </div></form>
+      </div>
+      <div class="panel" style="animation-delay:.24s"><div class="sweep"></div>
+        <h2><span>PROTOCOLS</span></h2>
+        <div id="settings"></div>
+        <div class="actions">
+          <button class="btn small" data-action="briefing">BRIEFING → TG</button>
+          <button class="btn small" data-action="stocks">MARKETS → TG</button>
+          <button class="btn small" data-action="voice">VOICE → TG</button>
+          <button class="btn small" id="refreshBtn">SYNC</button>
+        </div>
+      </div>
+      <div class="panel" style="animation-delay:.28s"><div class="sweep"></div>
+        <h2><span>ACTIVITY</span></h2>
+        <ul class="list" id="activity"></ul>
+      </div>
+    </section>
+  </main>
+
+  <nav class="mobile" id="mobileNav">
+    <button class="on" data-show="center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>JARVIS</button>
+    <button data-show="school"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>SCHOOL</button>
+    <button data-show="life"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zM18 16V11a6 6 0 1 0-12 0v5l-2 2h16z"/></svg>LIFE</button>
+    <button data-show="system"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>SYSTEM</button>
+  </nav>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('jarvis:' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('jarvis:' + k, JSON.stringify(v)); } catch (e) { /* private mode */ } },
+  del(k) { try { localStorage.removeItem('jarvis:' + k); } catch (e) { /* private mode */ } },
+};
+const DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+const BOARD = { exams: '📝 מבחנים', events: '🎉 אירועים', calendar: '🗓 לוח שכבה', messages: '📣 הודעות' };
+const VOICES = ['Orus', 'Charon', 'Algenib', 'Fenrir', 'Iapetus', 'Alnilam', 'Gacrux', 'Rasalgethi'];
+
+let conn = store.get('conn', null);   // { url, token } or { demo: true }
+let data = null, ttDay = 'today';
+let mode = 'idle';                    // idle | listening | thinking | speaking
+let conversation = false;             // keep listening after each reply
+let speechLang = store.get('lang', 'he-IL');
+const activity = [];
+
+/* ================================================================ API */
+async function api(name, payload = {}) {
+  if (conn && conn.demo) return demoApi(name, payload);
+  const res = await fetch(conn.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // a "simple" request: no CORS preflight
+    body: JSON.stringify({ api: name, token: conn.token, ...payload }),
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const out = await res.json();
+  if (!out.ok) throw new Error(out.error === 'unauthorized' ? 'קוד גישה שגוי' : out.error);
+  return out.data;
+}
+
+/* ================================================================ boot & login */
+function boot() {
+  $('boot').classList.remove('hidden');
+  const lines = [
+    '> INITIALIZING J.A.R.V.I.S. CORE ............ OK',
+    '> CALIBRATING ARC REACTOR ................... OK',
+    '> LINKING GOOGLE CLOUD UPLINK ............... OK',
+    '> LOADING SCHOOL DATABASE ................... OK',
+    '> VOICE SYNTHESIS: ' + (store.get('orus', false) ? 'ORUS' : 'LOCAL') + ' ...................... OK',
+    '> ALL SYSTEMS ONLINE. WELCOME BACK, SIR.',
+  ];
+  const fast = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let i = 0;
+  const step = () => {
+    $('bootText').textContent = lines.slice(0, i + 1).join('\n');
+    $('bootBar').style.width = Math.round(((i + 1) / lines.length) * 100) + '%';
+    if (++i < lines.length) setTimeout(step, fast ? 20 : 280);
+    else setTimeout(() => { $('boot').classList.add('hidden'); $('app').classList.remove('hidden'); start(); }, fast ? 50 : 450);
+  };
+  step();
+}
+
+$('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('loginErr').textContent = '';
+  const url = $('urlIn').value.trim(), token = $('tokIn').value.trim();
+  if (!/^https:\/\/script\.google(usercontent)?\.com\/.+\/exec$/.test(url)) {
+    $('loginErr').textContent = 'הכתובת צריכה להתחיל ב-https://script.google.com ולהיגמר ב-/exec';
+    return;
+  }
+  conn = { url, token };
+  try {
+    await api('ping');
+    store.set('conn', conn);
+    $('login').classList.add('hidden');
+    boot();
+  } catch (err) {
+    $('loginErr').textContent = 'החיבור נכשל: ' + err.message;
+    conn = null;
+  }
+});
+$('demoBtn').addEventListener('click', () => { conn = { demo: true }; $('login').classList.add('hidden'); boot(); });
+$('logoutBtn').addEventListener('click', () => { store.del('conn'); location.reload(); });
+
+/* ================================================================ header */
+function tick() {
+  const d = new Date();
+  $('clock').textContent = d.toLocaleTimeString('en-GB', { hour12: false });
+  $('dateLine').textContent = 'יום ' + DAYS[d.getDay()] + ' · ' + d.toLocaleDateString('he-IL', { day: 'numeric', month: 'long' });
+  if (data) markNow();
+}
+setInterval(tick, 1000);
+
+async function loadWeather() {
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=32.79&longitude=34.99&current=temperature_2m,weather_code&timezone=Asia%2FJerusalem');
+    const w = (await r.json()).current;
+    const icon = w.weather_code >= 61 ? '🌧' : w.weather_code >= 45 ? '🌫' : w.weather_code >= 2 ? '⛅' : '☀️';
+    $('weather').textContent = '· חיפה ' + Math.round(w.temperature_2m) + '° ' + icon;
+  } catch (e) { /* weather is decoration */ }
+}
+
+let accent = store.get('accent', 'arc');
+document.documentElement.dataset.accent = accent;
+$('accentBtn').addEventListener('click', () => {
+  accent = accent === 'arc' ? 'mark' : 'arc';
+  document.documentElement.dataset.accent = accent;
+  store.set('accent', accent);
+});
+
+/* ================================================================ data panels */
+async function refresh(quiet) {
+  try {
+    data = await api('dashboard');
+    render();
+  } catch (e) {
+    if (!quiet) toast('⚠ ' + e.message);
+  }
+}
+
+function render() {
+  const s = data.status || {};
+  $('chips').innerHTML = [['BRAIN', s.brain], ['TELEGRAM', s.telegram], ['SCHOOL', s.school], ['VOICE ' + (s.voice || '').toUpperCase(), true]]
+    .map(([n, on]) => `<span class="chip ${on ? 'on' : ''}"><i></i>${esc(n)}</span>`).join('');
+  renderTimetable(); renderBoard(); renderReminders(); renderStocks(); renderMemory(); renderSettings(); renderActivity();
+}
+
+function renderTimetable() {
+  const day = data[ttDay];
+  const lessons = Array.isArray(day.lessons) ? day.lessons : [];
+  $('ttTitle').textContent = 'יום ' + day.day + ' · ' + day.date.split('-').reverse().slice(0, 2).join('/') +
+    (day.lessons && day.lessons.error ? ' · ⚠ ' + day.lessons.error : '');
+  $('timetable').innerHTML = lessons.length ? lessons.map((l) => {
+    const cancel = /בוטל/.test(l.change || '');
+    return `<li class="lesson ${cancel ? 'cancel' : ''}" data-start="${esc(l.start)}" data-end="${esc(l.end)}">
+      <span class="num">${esc(l.period)}</span>
+      <span class="grow"><span class="subject">${esc(l.subject)}</span>
+        <div class="meta">${esc(l.teacher)}${l.room ? ' · חדר ' + esc(l.room) : ''}</div>
+        ${l.change ? `<span class="badge ${cancel ? 'cancel' : 'change'}">${esc(l.change)}</span>` : ''}</span>
+      <span class="time">${esc(l.start)}${l.end ? '–' + esc(l.end) : ''}</span></li>`;
+  }).join('') : '<li class="empty">אין לימודים ביום הזה 🎉</li>';
+  markNow();
+}
+
+function minutes(hhmm) { const [h, m] = String(hhmm).split(':').map(Number); return h * 60 + m; }
+function markNow() {
+  const prog = $('dayprog').firstElementChild;
+  const lessons = [...document.querySelectorAll('#timetable .lesson')];
+  if (ttDay !== 'today' || !lessons.length) { prog.style.width = '0'; lessons.forEach((li) => li.classList.remove('now')); return; }
+  const d = new Date(), now = d.getHours() * 60 + d.getMinutes();
+  const first = minutes(lessons[0].dataset.start), last = minutes(lessons[lessons.length - 1].dataset.end);
+  prog.style.width = Math.max(0, Math.min(100, ((now - first) / Math.max(1, last - first)) * 100)) + '%';
+  lessons.forEach((li) => li.classList.toggle('now', now >= minutes(li.dataset.start) && now < minutes(li.dataset.end)));
+}
+document.querySelectorAll('[data-tt]').forEach((b) => b.addEventListener('click', () => {
+  ttDay = b.dataset.tt;
+  document.querySelectorAll('[data-tt]').forEach((x) => x.classList.toggle('on', x === b));
+  if (data) renderTimetable();
+}));
+
+function chipDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-').map(Number);
+  return DAYS[new Date(y, m - 1, d).getDay()].slice(0, 3) + ' ' + d + '/' + m;
+}
+
+function renderBoard() {
+  const b = data.board || {};
+  if (b.error) { $('board').innerHTML = `<div class="empty">⚠ ${esc(b.error)}</div>`; return; }
+  let n = 0;
+  const html = Object.keys(BOARD).map((k) => {
+    const items = b[k] || [];
+    if (!items.length) return '';
+    n += items.length;
+    return `<div class="meta" style="margin-top:6px">${BOARD[k]}</div><ul class="list">${items.map((it) =>
+      `<li>${it.date ? `<span class="date-chip">${esc(chipDate(it.date))}</span>` : ''}<span class="grow">${esc(it.text.replace(/^\d{1,2}\.\d{1,2}\.\d{4},\s*/, ''))}</span></li>`).join('')}</ul>`;
+  }).join('');
+  $('boardCount').textContent = n || '';
+  $('board').innerHTML = html || '<div class="empty">אין מבחנים או אירועים קרובים 🎉</div>';
+}
+
+function renderReminders() {
+  const rs = (data.reminders || []).slice().sort((a, b) => (a.when < b.when ? -1 : 1));
+  $('remCount').textContent = rs.length || '';
+  $('reminders').innerHTML = rs.length ? rs.map((r) => {
+    const [d, t] = r.when.split('T');
+    return `<li><span class="date-chip">${esc(chipDate(d))}<br>${esc(t)}</span><span class="grow">${esc(r.text)}${r.call ? ' 📞' : ''}</span>
+      <button class="x" data-cancel="${esc(r.id)}" aria-label="ביטול תזכורת">✕</button></li>`;
+  }).join('') : '<li class="empty">אין תזכורות פתוחות</li>';
+}
+$('reminders').addEventListener('click', async (e) => {
+  const id = e.target.dataset && e.target.dataset.cancel;
+  if (!id) return;
+  await guarded(() => api('reminder_cancel', { id }), 'התזכורת בוטלה');
+  refresh(true);
+});
+$('remForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = $('remText').value.trim(), when = $('remWhen').value;
+  const ok = await guarded(() => api('reminder_add', { text, when, call: $('remCall').checked }), 'התזכורת נקבעה');
+  if (ok) { $('remText').value = ''; logActivity('תזכורת: ' + text); refresh(true); }
+});
+
+function sparkline(closes, up) {
+  if (!closes || closes.length < 2) return '';
+  const min = Math.min(...closes), max = Math.max(...closes), w = 200, h = 34;
+  const pts = closes.map((c, i) => [(i / (closes.length - 1)) * w, h - 3 - ((c - min) / Math.max(1e-9, max - min)) * (h - 6)]);
+  const color = up ? 'var(--ok)' : 'var(--danger)';
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+    <polyline fill="none" stroke="${color}" stroke-width="2" points="${pts.map((p) => p.join(',')).join(' ')}"/>
+    <circle cx="${pts[pts.length - 1][0]}" cy="${pts[pts.length - 1][1]}" r="3" fill="${color}"/></svg>`;
+}
+function renderStocks() {
+  const st = data.stocks || [];
+  $('mktDate').textContent = st[0] && st[0].date ? st[0].date.split('-').reverse().slice(0, 2).join('/') : '';
+  $('stocks').innerHTML = st.length ? st.map((q) => {
+    if (q.error) return `<div class="empty">⚠ ${esc(q.error)}</div>`;
+    const up = q.changePct >= 0;
+    const px = (q.symbol.charAt(0) === '^' ? '' : '$') + Number(q.price).toLocaleString('en-US', { minimumFractionDigits: 2 });
+    return `<div class="stock"><span class="name">${esc(q.name)} <span class="meta">${esc(q.symbol)}</span></span>
+      <span class="px">${esc(px)}</span><span class="meta">${q.closes ? q.closes.length + ' ימי מסחר' : ''}</span>
+      <span class="chg ${up ? 'up' : 'down'}">${up ? '▲ +' : '▼ '}${esc(q.changePct)}%</span>${sparkline(q.closes, up)}</div>`;
+  }).join('') : '<div class="empty">אין מניות במעקב</div>';
+}
+
+function renderMemory() {
+  const m = data.memory || [];
+  $('memCount').textContent = m.length || '';
+  $('memory').innerHTML = m.length ? m.map((f) =>
+    `<li><span class="grow">${esc(f.fact)}</span><button class="x" data-forget="${esc(f.id)}" aria-label="מחיקה">✕</button></li>`).join('')
+    : '<li class="empty">הזיכרון ריק</li>';
+}
+$('memory').addEventListener('click', async (e) => {
+  const id = e.target.dataset && e.target.dataset.forget;
+  if (!id) return;
+  await guarded(() => api('memory_delete', { id }), 'נמחק מהזיכרון');
+  refresh(true);
+});
+$('memForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fact = $('memText').value.trim();
+  if (await guarded(() => api('memory_add', { fact }), 'נשמר בזיכרון')) { $('memText').value = ''; refresh(true); }
+});
+
+function renderSettings() {
+  const s = data.settings || {};
+  const on = (v) => /^(on|1|true|yes)$/i.test(String(v));
+  const row = (label, control) => `<div class="setting"><span>${label}</span>${control}</div>`;
+  const toggle = (key) => `<span class="toggle"><input type="checkbox" data-key="${key}" ${on(s[key]) ? 'checked' : ''} aria-label="${key}"><i></i></span>`;
+  $('settings').innerHTML = [
+    row('הודעות יזומות של ג׳רוויס', toggle('PROACTIVE')),
+    row('מקסימום יזומות ביום', `<input class="input" type="number" min="0" max="10" data-key="PROACTIVE_MAX_PER_DAY" value="${esc(s.PROACTIVE_MAX_PER_DAY)}">`),
+    row('תדריך קולי בבוקר', toggle('TIMETABLE_MORNING_CALL')),
+    row('שעת תדריך בוקר', `<input class="input" type="time" data-key="TIMETABLE_MORNING_TIME" value="${esc(s.TIMETABLE_MORNING_TIME)}">`),
+    row('שעת מערכת לערב', `<input class="input" type="time" data-key="TIMETABLE_EVENING_TIME" value="${esc(s.TIMETABLE_EVENING_TIME)}">`),
+    row('קול בטלגרם', `<select class="input" data-key="VOICE_NAME">${VOICES.map((v) => `<option ${v === s.VOICE_NAME ? 'selected' : ''}>${v}</option>`).join('')}</select>`),
+    row('עומק קול (1 = רגיל)', `<input class="input" type="number" step="0.02" min="0.75" max="1.1" data-key="VOICE_PITCH" value="${esc(s.VOICE_PITCH)}">`),
+    row('מניות במעקב', `<input class="input" dir="ltr" data-key="STOCKS" value="${esc(s.STOCKS)}">`),
+    row('הכיתה שלי', `<input class="input" data-key="OWNER_CLASS" value="${esc(s.OWNER_CLASS)}">`),
+  ].join('');
+}
+$('settings').addEventListener('change', async (e) => {
+  const el = e.target, key = el.dataset.key;
+  if (!key) return;
+  const value = el.type === 'checkbox' ? (el.checked ? 'on' : 'off') : el.value;
+  await guarded(() => api('settings_set', { key, value }), 'נשמר ✓');
+  logActivity('הגדרה: ' + key + ' = ' + value);
+});
+
+document.querySelectorAll('[data-action]').forEach((b) => b.addEventListener('click', async () => {
+  const name = b.dataset.action;
+  b.disabled = true;
+  const res = await guarded(() => api('action', { name }), null);
+  b.disabled = false;
+  if (res) { toast('✓ ' + res); logActivity(b.textContent + ' – ' + res); }
+}));
+$('refreshBtn').addEventListener('click', () => { refresh(); toast('מסנכרן...'); });
+
+function logActivity(text) {
+  activity.unshift({ at: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), text });
+  renderActivity();
+}
+function renderActivity() {
+  const pro = ((data && data.proactive) || []).map((t) => ({ at: 'יזום', text: t }));
+  const all = activity.concat(pro).slice(0, 30);
+  $('activity').innerHTML = all.length ? all.map((a) => `<li><span class="date-chip">${esc(a.at)}</span><span class="grow">${esc(a.text)}</span></li>`).join('')
+    : '<li class="empty">שקט כרגע. הודעות יזומות של ג׳רוויס יופיעו כאן.</li>';
+}
+
+async function guarded(fn, okMsg) {
+  try { const r = await fn(); if (okMsg) toast(okMsg); return r === undefined ? true : r; }
+  catch (e) { toast('⚠ ' + e.message); return null; }
+}
+let toastTimer;
+function toast(text) {
+  $('toast').textContent = text;
+  $('toast').classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2600);
+}
+
+/* ================================================================ chat */
+function addMsg(who, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + who;
+  div.innerHTML = who === 'sys' ? esc(text) : `<span class="who">${who === 'me' ? 'YOU' : 'JARVIS'}</span>${esc(text)}`;
+  $('log').appendChild(div);
+  $('log').scrollTop = $('log').scrollHeight;
+  return div;
+}
+function typing() {
+  const d = addMsg('jarvis', '');
+  d.innerHTML = '<span class="who">JARVIS</span><span class="typing"><span></span><span></span><span></span></span>';
+  return d;
+}
+
+async function send(text, viaVoice) {
+  text = text.trim();
+  if (!text) return;
+  addMsg('me', text);
+  setMode('thinking');
+  const t = typing();
+  try {
+    const { reply } = await api('chat', { text, voice: !!viaVoice });
+    t.remove();
+    addMsg('jarvis', reply);
+    if (viaVoice || $('speakAll').checked) await speak(reply);
+    else setMode('idle');
+    if (/תזכורת|זכור|remind|remember/i.test(text)) refresh(true);
+  } catch (e) {
+    t.remove();
+    addMsg('sys', '⚠ ' + e.message);
+    setMode('idle');
+    conversation = false; syncTalkBtn();
+    return;
+  }
+  if (conversation) listen();
+}
+$('sayForm').addEventListener('submit', (e) => { e.preventDefault(); const v = $('sayIn').value; $('sayIn').value = ''; send(v, false); });
+$('resetChat').addEventListener('click', async () => { await guarded(() => api('chat_reset'), 'שיחה חדשה'); $('log').innerHTML = ''; });
+$('speakAll').checked = store.get('speakAll', false);
+$('speakAll').addEventListener('change', () => store.set('speakAll', $('speakAll').checked));
+$('orusVoice').checked = store.get('orus', false);
+$('orusVoice').addEventListener('change', () => store.set('orus', $('orusVoice').checked));
+
+/* ================================================================ voice in (speech recognition) */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+const STOP_WORDS = /^(תודה ג.?רוויס|זהו|די|stop|that'?s all|thank you jarvis)[.!]?$/i;
+
+function listen() {
+  if (!SR) { toast('הדפדפן לא תומך בזיהוי דיבור. נסה Chrome או Safari.'); conversation = false; syncTalkBtn(); return; }
+  if (rec) try { rec.abort(); } catch (e) { /* already stopped */ }
+  rec = new SR();
+  rec.lang = speechLang;
+  rec.interimResults = true;
+  rec.continuous = false;
+  let finalText = '';
+  rec.onstart = () => { setMode('listening'); $('heard').textContent = ''; startMicLevel(); };
+  rec.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    $('heard').textContent = finalText || interim;
+  };
+  rec.onerror = (e) => {
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { toast('צריך לאשר גישה למיקרופון'); conversation = false; syncTalkBtn(); }
+  };
+  rec.onend = () => {
+    stopMicLevel();
+    const said = finalText.trim();
+    $('heard').textContent = '';
+    if (said && STOP_WORDS.test(said)) { conversation = false; syncTalkBtn(); setMode('idle'); speak(speechLang === 'he-IL' ? 'Very well, sir.' : 'As you wish, sir.'); return; }
+    if (said) send(said, true);
+    else if (conversation) setTimeout(listen, 250); // silence: keep the line open
+    else setMode('idle');
+  };
+  try { rec.start(); } catch (e) { setTimeout(listen, 400); }
+}
+
+function startTalking() {
+  unlockAudio();
+  conversation = true; syncTalkBtn();
+  stopSpeaking();
+  listen();
+}
+function stopAll() {
+  conversation = false; syncTalkBtn();
+  if (rec) try { rec.abort(); } catch (e) { /* already stopped */ }
+  stopSpeaking(); stopMicLevel(); setMode('idle');
+}
+function syncTalkBtn() {
+  $('talkBtn').textContent = conversation ? 'LIVE' : 'TALK';
+  $('talkBtn').classList.toggle('live', conversation);
+}
+$('talkBtn').addEventListener('click', () => (conversation ? stopAll() : startTalking()));
+$('stopBtn').addEventListener('click', stopAll);
+$('reactor').addEventListener('click', () => (conversation ? stopAll() : startTalking()));
+$('reactor').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('reactor').click(); } });
+const syncLang = () => { $('langBtn').textContent = speechLang === 'he-IL' ? 'HE' : 'EN'; };
+$('langBtn').addEventListener('click', () => { speechLang = speechLang === 'he-IL' ? 'en-US' : 'he-IL'; store.set('lang', speechLang); syncLang(); });
+syncLang();
+
+/* microphone level for the reactor (optional; speech recognition works without it) */
+let micStream = null, micAnalyser = null;
+async function startMicLevel() {
+  if (micStream || !navigator.mediaDevices || /iPhone|iPad|iPod/.test(navigator.userAgent)) return; // iOS: one mic user at a time
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const ctx = audioCtx();
+    micAnalyser = ctx.createAnalyser(); micAnalyser.fftSize = 256;
+    ctx.createMediaStreamSource(micStream).connect(micAnalyser);
+  } catch (e) { micStream = null; }
+}
+function stopMicLevel() {
+  if (micStream) micStream.getTracks().forEach((t) => t.stop());
+  micStream = null; micAnalyser = null;
+}
+
+/* ================================================================ voice out */
+let ctxAudio = null, playing = null, speechAnalyser = null;
+function audioCtx() {
+  if (!ctxAudio) ctxAudio = new (window.AudioContext || window.webkitAudioContext)();
+  return ctxAudio;
+}
+function unlockAudio() { try { const c = audioCtx(); if (c.state === 'suspended') c.resume(); } catch (e) { /* no audio */ } }
+
+function pickVoice() {
+  const vs = speechSynthesis.getVoices();
+  const wanted = ['Daniel', 'Google UK English Male', 'Microsoft Ryan', 'Microsoft George', 'Arthur', 'Oliver', 'Microsoft Thomas'];
+  for (const w of wanted) { const v = vs.find((x) => x.name.indexOf(w) === 0 || x.name.indexOf(w) >= 0); if (v) return v; }
+  return vs.find((v) => v.lang === 'en-GB') || vs.find((v) => /^en/.test(v.lang)) || null;
+}
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
+
+async function speak(text) {
+  stopSpeaking();
+  const hebrew = /[֐-׿]/.test(text);
+  if (store.get('orus', false) && !hebrew) {
+    try { await speakOrus(text); return; } catch (e) { addMsg('sys', 'קול Orus לא זמין כרגע (' + e.message + '), עובר לקול המקומי'); }
+  }
+  await speakLocal(text, hebrew);
+}
+
+function speakLocal(text, hebrew) {
+  return new Promise((resolve) => {
+    if (!('speechSynthesis' in window)) { setMode('idle'); resolve(); return; }
+    const u = new SpeechSynthesisUtterance(text.replace(/[*_#`•]/g, ''));
+    if (hebrew) { u.lang = 'he-IL'; } else { const v = pickVoice(); if (v) u.voice = v; u.lang = v ? v.lang : 'en-GB'; u.pitch = 0.82; u.rate = 0.96; }
+    u.onstart = () => setMode('speaking');
+    u.onboundary = () => { speechPulse = 1; };
+    u.onend = u.onerror = () => { setMode('idle'); resolve(); };
+    speechSynthesis.speak(u);
+  });
+}
+
+async function speakOrus(text) {
+  setMode('thinking');
+  const { wav } = await api('tts', { text });
+  const bytes = Uint8Array.from(atob(wav), (c) => c.charCodeAt(0));
+  const ctx = audioCtx();
+  const buf = await ctx.decodeAudioData(bytes.buffer);
+  return new Promise((resolve) => {
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    speechAnalyser = ctx.createAnalyser(); speechAnalyser.fftSize = 256;
+    src.connect(speechAnalyser); speechAnalyser.connect(ctx.destination);
+    src.onended = () => { playing = null; speechAnalyser = null; setMode('idle'); resolve(); };
+    playing = src;
+    setMode('speaking');
+    src.start();
+  });
+}
+function stopSpeaking() {
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  if (playing) try { playing.stop(); } catch (e) { /* already stopped */ }
+  playing = null;
+}
+
+/* ================================================================ state */
+const LABELS = { idle: 'STANDBY', listening: 'LISTENING', thinking: 'PROCESSING', speaking: 'RESPONDING' };
+function setMode(m) {
+  mode = m;
+  $('stateLabel').textContent = conversation && m === 'idle' ? 'LIVE' : LABELS[m];
+}
+
+/* ================================================================ arc reactor */
+const cv = $('reactor'), g = cv.getContext('2d');
+const bars = new Float32Array(72);
+const particles = Array.from({ length: 90 }, () => ({ a: Math.random() * Math.PI * 2, r: 0.5 + Math.random() * 0.5, s: (Math.random() - 0.5) * 0.008, z: Math.random() }));
+let speechPulse = 0, level = 0;
+function sizeCanvas() { const s = Math.round(cv.clientWidth * Math.min(2, devicePixelRatio || 1)); if (cv.width !== s) cv.width = cv.height = s; }
+addEventListener('resize', sizeCanvas);
+
+function readLevels(t) {
+  const an = speechAnalyser || micAnalyser;
+  if (an) {
+    const arr = new Uint8Array(an.frequencyBinCount);
+    an.getByteFrequencyData(arr);
+    let sum = 0;
+    for (let i = 0; i < bars.length; i++) { const v = arr[Math.floor((i / bars.length) * arr.length * 0.7)] / 255; bars[i] += (v - bars[i]) * 0.4; sum += v; }
+    level += (sum / bars.length - level) * 0.3;
+    return;
+  }
+  // no analyser: a synthetic voice-like shape, driven by state
+  speechPulse *= 0.9;
+  const amp = mode === 'speaking' ? 0.35 + speechPulse * 0.5 : mode === 'listening' ? 0.18 + 0.1 * Math.sin(t / 160) : mode === 'thinking' ? 0.12 : 0.04;
+  for (let i = 0; i < bars.length; i++) {
+    const target = amp * (0.5 + 0.5 * Math.sin(i * 0.55 + t / (mode === 'thinking' ? 90 : 200)) * Math.sin(i * 0.17 - t / 330)) * (0.6 + Math.random() * 0.4);
+    bars[i] += (Math.abs(target) - bars[i]) * 0.25;
+  }
+  level += (amp - level) * 0.1;
+}
+
+function drawReactor(t) {
+  sizeCanvas();
+  const W = cv.width, c = W / 2, R = W * 0.4;
+  g.clearRect(0, 0, W, W);
+  readLevels(t);
+  const css = getComputedStyle(document.documentElement);
+  const rgb = mode === 'thinking' ? '255, 176, 46' : mode === 'listening' && accent === 'arc' ? '122, 243, 255' : css.getPropertyValue('--accent-rgb').trim();
+  const col = (a) => `rgba(${rgb}, ${a})`;
+  const speed = mode === 'thinking' ? 3.5 : mode === 'speaking' ? 1.8 : mode === 'listening' ? 1.4 : 0.7;
+  const T = (t / 1000) * speed;
+  g.lineCap = 'round';
+
+  // core
+  const pulse = 0.55 + level * 1.2;
+  const core = g.createRadialGradient(c, c, 0, c, c, R * 0.46);
+  core.addColorStop(0, `rgba(235, 252, 255, ${Math.min(1, 0.8 + level)})`);
+  core.addColorStop(0.3, col(Math.min(1, 0.5 + pulse * 0.4)));
+  core.addColorStop(1, col(0));
+  g.fillStyle = core; g.beginPath(); g.arc(c, c, R * (0.44 + level * 0.08), 0, Math.PI * 2); g.fill();
+
+  // triangle (Mark VI style)
+  g.strokeStyle = col(0.55); g.lineWidth = W * 0.004;
+  g.beginPath();
+  for (let i = 0; i < 3; i++) { const a = -Math.PI / 2 + i * (Math.PI * 2 / 3) + T * 0.08; g.lineTo(c + Math.cos(a) * R * 0.3, c + Math.sin(a) * R * 0.3); }
+  g.closePath(); g.stroke();
+
+  // frequency bars around the core
+  g.lineWidth = W * 0.006;
+  for (let i = 0; i < bars.length; i++) {
+    const a = (i / bars.length) * Math.PI * 2 - Math.PI / 2;
+    const r1 = R * 0.52, r2 = r1 + R * (0.03 + bars[i] * 0.42);
+    g.strokeStyle = col(0.35 + bars[i] * 0.65);
+    g.beginPath(); g.moveTo(c + Math.cos(a) * r1, c + Math.sin(a) * r1); g.lineTo(c + Math.cos(a) * r2, c + Math.sin(a) * r2); g.stroke();
+  }
+
+  // rotating rings
+  g.shadowColor = col(1); g.shadowBlur = W * 0.02;
+  const ring = (r, w, a0, len, alpha, n, gap) => {
+    g.strokeStyle = col(alpha); g.lineWidth = w;
+    for (let i = 0; i < n; i++) { const a = a0 + i * (Math.PI * 2 / n); g.beginPath(); g.arc(c, c, r, a, a + len - gap); g.stroke(); }
+  };
+  ring(R * 0.99, W * 0.012, -T * 0.4, Math.PI * 0.55, 0.8, 3, 0);
+  ring(R * 1.07, W * 0.004, T * 0.25, Math.PI * 2 / 40, 0.75, 40, 0.05);
+  ring(R * 1.15, W * 0.003, -T * 0.12, Math.PI * 0.9, 0.5, 2, 0);
+  ring(R * 0.92, W * 0.003, T * 0.6, Math.PI * 2 / 12, 0.6, 12, 0.18);
+  g.shadowBlur = 0;
+
+  // outer ticks
+  g.strokeStyle = col(0.3); g.lineWidth = W * 0.002;
+  for (let i = 0; i < 120; i++) {
+    const a = (i / 120) * Math.PI * 2 + T * 0.03, l = i % 10 === 0 ? 0.06 : 0.025;
+    g.beginPath(); g.moveTo(c + Math.cos(a) * R * 1.24, c + Math.sin(a) * R * 1.24);
+    g.lineTo(c + Math.cos(a) * R * (1.24 - l), c + Math.sin(a) * R * (1.24 - l)); g.stroke();
+  }
+
+  // scanning arc while thinking
+  if (mode === 'thinking') {
+    const a = T * 2;
+    const grad = g.createConicGradient ? g.createConicGradient(a, c, c) : null;
+    if (grad) {
+      grad.addColorStop(0, col(0.35)); grad.addColorStop(0.15, col(0)); grad.addColorStop(1, col(0));
+      g.fillStyle = grad; g.beginPath(); g.arc(c, c, R * 1.2, 0, Math.PI * 2); g.fill();
+    }
+  }
+
+  // particles
+  for (const p of particles) {
+    p.a += p.s * speed * (1 + level * 3);
+    const rr = R * (p.r + 0.75) * (1 + level * 0.15);
+    g.fillStyle = col(0.2 + p.z * 0.6);
+    g.beginPath(); g.arc(c + Math.cos(p.a) * rr, c + Math.sin(p.a) * rr, W * 0.0022 * (1 + p.z), 0, Math.PI * 2); g.fill();
+  }
+  requestAnimationFrame(drawReactor);
+}
+
+/* background: drifting hex grid */
+const bg = $('bgfx'), bgc = bg.getContext('2d');
+function drawBg(t) {
+  const w = (bg.width = innerWidth), h = (bg.height = innerHeight);
+  bgc.clearRect(0, 0, w, h);
+  const grad = bgc.createRadialGradient(w / 2, h * 0.38, 0, w / 2, h * 0.38, Math.max(w, h) * 0.7);
+  grad.addColorStop(0, '#062237'); grad.addColorStop(1, '#02060c');
+  bgc.fillStyle = grad; bgc.fillRect(0, 0, w, h);
+  const rgb = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim();
+  const s = 26, hh = s * Math.sqrt(3), off = (t / 120) % hh;
+  bgc.strokeStyle = `rgba(${rgb}, 0.045)`; bgc.lineWidth = 1;
+  for (let y = -hh; y < h + hh; y += hh) {
+    for (let x = 0, i = 0; x < w + s * 2; x += s * 1.5, i++) {
+      const cy = y + off + (i % 2 ? hh / 2 : 0);
+      bgc.beginPath();
+      for (let k = 0; k < 6; k++) { const a = (Math.PI / 3) * k; bgc.lineTo(x + Math.cos(a) * s * 0.92, cy + Math.sin(a) * s * 0.92); }
+      bgc.closePath(); bgc.stroke();
+    }
+  }
+}
+let bgFrame = 0;
+function bgLoop(t) { if (bgFrame++ % 3 === 0) drawBg(t); requestAnimationFrame(bgLoop); }
+
+/* ================================================================ mobile tabs */
+$('mobileNav').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#mobileNav button').forEach((x) => x.classList.toggle('on', x === b));
+  const show = b.dataset.show;
+  $('centerCol').classList.toggle('inactive', show !== 'center');
+  document.querySelectorAll('.col.side').forEach((col) => col.classList.toggle('active', col.dataset.group === show));
+  scrollTo({ top: 0 });
+});
+
+/* ================================================================ start */
+function start() {
+  sizeCanvas();
+  requestAnimationFrame(drawReactor);
+  tick(); loadWeather();
+  setInterval(loadWeather, 15 * 60000);
+  addMsg('jarvis', 'All systems online. לחץ על הכור או על TALK כדי לדבר איתי, אדוני.');
+  const d = new Date(Date.now() + 3600000);
+  $('remWhen').value = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  refresh();
+  setInterval(() => refresh(true), 60000);
+  if (!SR) addMsg('sys', 'הדפדפן הזה לא תומך בדיבור. אפשר לכתוב, או לפתוח ב-Chrome / Safari.');
+}
+requestAnimationFrame(bgLoop);
+if (conn) boot(); else $('login').classList.remove('hidden');
+
+/* ================================================================ demo mode (no server) */
+function demoApi(name, p) {
+  const wait = (v, ms = 500) => new Promise((r) => setTimeout(() => r(v), ms));
+  const iso = (n) => { const d = new Date(Date.now() + n * 864e5); return d.toISOString().slice(0, 10); };
+  window.__demo = window.__demo || {
+    reminders: [{ id: 'r1', text: 'להביא בגדי ספורט', when: iso(0) + 'T07:15', call: false }, { id: 'r2', text: 'מבחן במתמטיקה – להביא מחשבון', when: iso(1) + 'T07:00', call: true }],
+    memory: [{ id: 'm1', fact: 'לומד בכיתה ט9 בבית ספר בית בירם בחיפה' }, { id: 'm2', fact: 'רוצה שיקראו לו אדוני' }],
+    settings: { TIMETABLE_EVENING_TIME: '20:00', TIMETABLE_MORNING_TIME: '06:30', TIMETABLE_MORNING_CALL: 'on', PROACTIVE: 'on', PROACTIVE_MAX_PER_DAY: '3', VOICE_NAME: 'Orus', VOICE_PITCH: '1', STOCKS: 'NVDA,^GSPC', OWNER_CLASS: 'ט9' },
+  };
+  const D = window.__demo;
+  const lessons = [
+    { period: 1, start: '08:00', end: '08:45', subject: 'כימיה', teacher: 'לרנר דור', room: '204', change: '' },
+    { period: 2, start: '08:45', end: '09:30', subject: 'כימיה', teacher: 'לרנר דור', room: '204', change: '' },
+    { period: 3, start: '09:45', end: '10:30', subject: 'מתמטיקה', teacher: 'אלקין יוליה', room: '110', change: 'מילוי מקום – הראל עוז, חדר 300' },
+    { period: 4, start: '10:30', end: '11:15', subject: 'אנגלית', teacher: 'לוינזון אוה', room: '12', change: 'בוטל' },
+    { period: 5, start: '11:30', end: '12:15', subject: 'גיאוגרפיה', teacher: 'עידן', room: '7', change: '' },
+    { period: 6, start: '12:15', end: '13:00', subject: 'ערבית', teacher: 'חורי רנא', room: '9', change: '' },
+  ];
+  switch (name) {
+    case 'ping': return wait({ owner: 'יאיר' });
+    case 'dashboard': return wait({
+      owner: 'יאיר', status: { brain: true, telegram: true, school: true, calls: true, voice: 'Orus' },
+      today: { date: iso(0), day: DAYS[new Date().getDay()], lessons },
+      tomorrow: { date: iso(1), day: DAYS[(new Date().getDay() + 1) % 7], lessons: lessons.slice(1, 5).map((l) => ({ ...l, change: '' })) },
+      board: { exams: [{ date: iso(2), text: 'מבחן במתמטיקה – אלקין יוליה' }], events: [{ date: iso(5), text: 'טיול שנתי לשכבת ט' }], calendar: [{ date: iso(9), text: 'חופש: חופשת חנוכה' }], messages: [] },
+      reminders: D.reminders, memory: D.memory, settings: D.settings, proactive: ['שיעור אנגלית מחר בוטל, אדוני.'],
+      stocks: [{ symbol: 'NVDA', name: 'אנבידיה', price: 204.13, changePct: -0.25, date: iso(0), closes: [217.9, 215.4, 213.7, 204.6, 204.1] },
+               { symbol: '^GSPC', name: 'S&P 500', price: 7577.78, changePct: 0.31, date: iso(0), closes: [7722, 7744, 7720, 7580, 7577] }],
+    }, 700);
+    case 'chat': return wait({ reply: p.voice ? 'Certainly, sir. This is demo mode, so I am not connected to the real me just yet.' : 'מצב הדגמה, אדוני. כשתתחבר, אענה באמת.' }, 900);
+    case 'reminder_add': D.reminders.push({ id: 'r' + Date.now(), text: p.text, when: p.when, call: p.call }); return wait({});
+    case 'reminder_cancel': D.reminders = D.reminders.filter((r) => r.id !== p.id); return wait('ok');
+    case 'memory_add': D.memory.push({ id: 'm' + Date.now(), fact: p.fact }); return wait({});
+    case 'memory_delete': D.memory = D.memory.filter((m) => m.id !== p.id); return wait('ok');
+    case 'settings_set': D.settings[p.key] = p.value; return wait(D.settings);
+    case 'action': return wait('הדגמה – לא נשלח');
+    case 'chat_reset': return wait('ok');
+    case 'tts': return Promise.reject(new Error('demo'));
+    default: return Promise.reject(new Error('unknown'));
+  }
+}
+</script>
+</body>
+</html>
