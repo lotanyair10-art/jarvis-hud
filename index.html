@@ -253,6 +253,19 @@ input[type="datetime-local"].input, input[type="time"].input { direction: ltr; c
 .voicebar { height: 3px; background: var(--soft); margin-top: 8px; overflow: hidden; }
 .voicebar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.2s; }
 
+/* floating browser window */
+#win {
+  position: fixed; z-index: 40; inset: 6vh 5vw auto 5vw; height: 82vh; display: flex; flex-direction: column;
+  background: var(--panel-solid); border: 1px solid var(--line-strong); box-shadow: 0 0 40px rgba(var(--accent-rgb), 0.25);
+  clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+}
+#win .bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); direction: ltr; }
+#win .bar b { font: 700 11px "Orbitron", sans-serif; letter-spacing: 0.2em; color: var(--accent); flex: none; }
+#win .bar span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; }
+#win iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+#win .hint { font-size: 12px; color: var(--muted); padding: 6px 12px; border-top: 1px solid var(--line); }
+@media (max-width: 760px) { #win { inset: 0 0 64px 0; height: auto; clip-path: none; } }
+
 /* mobile tabs */
 nav.mobile { display: none; }
 
@@ -445,6 +458,13 @@ nav.mobile { display: none; }
     <button data-show="life"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zM18 16V11a6 6 0 1 0-12 0v5l-2 2h16z"/></svg>LIFE</button>
     <button data-show="system"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>SYSTEM</button>
   </nav>
+</div>
+<div id="win" class="hidden" role="dialog" aria-label="חלון אתר">
+  <div class="bar"><b>WINDOW</b><span id="winUrl"></span>
+    <button class="icon-btn" id="winOpen" title="פתיחה בלשונית חדשה" aria-label="פתיחה בלשונית חדשה">↗</button>
+    <button class="icon-btn" id="winClose" title="סגירה" aria-label="סגירת החלון">✕</button></div>
+  <iframe id="winFrame" title="אתר" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation" allow="autoplay; fullscreen; encrypted-media"></iframe>
+  <div class="hint">אם החלון ריק, האתר חוסם הצגה בתוך אתרים אחרים – לחץ ↗ לפתיחה בלשונית חדשה. ג׳רוויס יכול גם לקרוא את האתר ולספר לך מה כתוב בו.</div>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -743,6 +763,43 @@ function toast(text) {
   toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2600);
 }
 
+/* ================================================================ things Jarvis does on the screen */
+function runActions(actions) {
+  actions.forEach((a) => {
+    if (a.type === 'open_url') openWindow(a.value);
+    else if (a.type === 'theme') { accent = a.value === 'mark' ? 'mark' : 'arc'; document.documentElement.dataset.accent = accent; store.set('accent', accent); }
+    else if (a.type === 'news_tab') { const b = document.querySelector('[data-news="' + a.value + '"]'); if (b) b.click(); showPanel('intel'); }
+    else if (a.type === 'timetable') { const b = document.querySelector('[data-tt="' + a.value + '"]'); if (b) b.click(); showPanel('school'); }
+    else if (a.type === 'panel') showPanel(a.value);
+    logActivity('ג׳רוויס: ' + a.type + ' → ' + a.value);
+  });
+}
+
+/** Sites that refuse to be framed often offer an embeddable address; use it when we know one. */
+function embeddable(url) {
+  try {
+    const u = new URL(url);
+    const yt = u.hostname.includes('youtu.be') ? u.pathname.slice(1) : u.searchParams.get('v');
+    if (/youtube\.com|youtu\.be/.test(u.hostname) && yt) return 'https://www.youtube.com/embed/' + yt + '?autoplay=1';
+    if (/google\.[a-z.]+$/.test(u.hostname) && u.pathname.startsWith('/maps')) {
+      const q = u.searchParams.get('q') || decodeURIComponent(((u.pathname.match(/\/maps\/(?:search|place)\/([^/]+)/) || [])[1] || '').replace(/\+/g, ' '));
+      if (q) return 'https://maps.google.com/maps?q=' + encodeURIComponent(q) + '&output=embed';
+    }
+    if (/(^|\.)wikipedia\.org$/.test(u.hostname)) return url;
+  } catch (e) { /* not a URL */ }
+  return url;
+}
+let winUrl = '';
+function openWindow(url) {
+  winUrl = url;
+  $('winUrl').textContent = url;
+  $('winFrame').src = embeddable(url);
+  $('win').classList.remove('hidden');
+}
+$('winClose').addEventListener('click', () => { $('win').classList.add('hidden'); $('winFrame').src = 'about:blank'; });
+$('winOpen').addEventListener('click', () => window.open(winUrl, '_blank', 'noopener'));
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('win').classList.contains('hidden')) $('winClose').click(); });
+
 /* ================================================================ chat */
 function addMsg(who, text) {
   const div = document.createElement('div');
@@ -765,12 +822,13 @@ async function send(text, viaVoice) {
   setMode('thinking');
   const t = typing();
   try {
-    const { reply } = await api('chat', { text, voice: !!(viaVoice || $('speakAll').checked), lang: replyLang(viaVoice) });
+    const { reply, actions, changed } = await api('chat', { text, voice: !!(viaVoice || $('speakAll').checked), lang: replyLang(viaVoice) });
     t.remove();
     addMsg('jarvis', reply);
+    runActions(actions || []);
+    if (changed) refresh(true);
     if (viaVoice || $('speakAll').checked) await speak(reply, conversation);
     else setMode('idle');
-    if (/תזכורת|זכור|remind|remember/i.test(text)) refresh(true);
   } catch (e) {
     t.remove();
     addMsg('sys', '⚠ ' + e.message);
@@ -1176,14 +1234,14 @@ let bgFrame = 0;
 function bgLoop(t) { if (bgFrame++ % 3 === 0) drawBg(t); requestAnimationFrame(bgLoop); }
 
 /* ================================================================ mobile tabs */
-$('mobileNav').addEventListener('click', (e) => {
-  const b = e.target.closest('button'); if (!b) return;
-  document.querySelectorAll('#mobileNav button').forEach((x) => x.classList.toggle('on', x === b));
-  const show = b.dataset.show;
+function showPanel(show) {
+  if (!matchMedia('(max-width: 760px)').matches) return; // on wide screens every panel is already visible
+  document.querySelectorAll('#mobileNav button').forEach((x) => x.classList.toggle('on', x.dataset.show === show));
   $('centerCol').classList.toggle('inactive', show !== 'center');
   document.querySelectorAll('.col.side').forEach((col) => col.classList.toggle('active', col.dataset.group === show));
   scrollTo({ top: 0 });
-});
+}
+$('mobileNav').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) showPanel(b.dataset.show); });
 
 /* ================================================================ start */
 function start() {
@@ -1233,7 +1291,11 @@ function demoApi(name, p) {
       stocks: [{ symbol: 'NVDA', name: 'אנבידיה', price: 204.13, changePct: -0.25, date: iso(0), closes: [217.9, 215.4, 213.7, 204.6, 204.1] },
                { symbol: '^GSPC', name: 'S&P 500', price: 7577.78, changePct: 0.31, date: iso(0), closes: [7722, 7744, 7720, 7580, 7577] }],
     }, 700);
-    case 'chat': return wait({ reply: p.voice ? 'Certainly, sir. This is demo mode, so I am not connected to the real me just yet.' : 'מצב הדגמה, אדוני. כשתתחבר, אענה באמת.' }, 900);
+    case 'chat': {
+      if (/פתח|open/i.test(p.text)) return wait({ reply: 'Opening it now, sir.', actions: [{ type: 'open_url', value: 'https://he.wikipedia.org/wiki/איירון_מן' }] }, 700);
+      if (/זהב|gold/i.test(p.text)) return wait({ reply: 'Switching to the Mark protocol, sir.', actions: [{ type: 'theme', value: 'mark' }], changed: false }, 700);
+      return wait({ reply: p.voice ? 'Certainly, sir. This is demo mode, so I am not connected to the real me just yet.' : 'מצב הדגמה, אדוני. כשתתחבר, אענה באמת.' }, 900);
+    }
     case 'reminder_add': D.reminders.push({ id: 'r' + Date.now(), text: p.text, when: p.when, call: p.call }); return wait({});
     case 'reminder_cancel': D.reminders = D.reminders.filter((r) => r.id !== p.id); return wait('ok');
     case 'memory_add': D.memory.push({ id: 'm' + Date.now(), fact: p.fact }); return wait({});
