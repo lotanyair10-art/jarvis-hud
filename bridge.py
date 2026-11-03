@@ -172,9 +172,14 @@ class Bridge:
                 await climate.setHvacMode(str(value))  # e.g. Off, Cool, Heat, Auto
             elif action == "off":
                 await climate.setHvacMode("Off")
+            async def safe(getter):
+                try:
+                    return await getter()
+                except Exception:
+                    return None  # not every thermostat reports every value
             return {
-                "mode": await climate.getHVACMode(), "current_c": await climate.getCurrentTemperatureC(),
-                "cool_c": await climate.getCoolSetpointC(), "heat_c": await climate.getHeatSetpointC(),
+                "mode": await safe(climate.getHVACMode), "current_c": await safe(climate.getCurrentTemperatureC),
+                "cool_c": await safe(climate.getCoolSetpointC), "heat_c": await safe(climate.getHeatSetpointC),
             }
         if kind == "blind":
             blind = C4Blind(self.director, device)
