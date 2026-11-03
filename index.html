@@ -114,7 +114,8 @@ main {
 }
 /* three columns: school | reactor | life above system */
 .col[data-group="school"] { grid-column: 1; grid-row: 1 / span 2; }
-.center { grid-column: 2; grid-row: 1 / span 2; }
+.center { grid-column: 2; grid-row: 1; }
+.col[data-group="intel"] { grid-column: 2; grid-row: 2; }
 .col[data-group="life"] { grid-column: 3; grid-row: 1; }
 .col[data-group="system"] { grid-column: 3; grid-row: 2; }
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
@@ -241,15 +242,27 @@ input[type="datetime-local"].input, input[type="time"].input { direction: ltr; c
 }
 #toast.show { opacity: 1; transform: translateX(-50%); }
 
+/* news */
+.news li { align-items: flex-start; }
+.news a { color: var(--text); text-decoration: none; }
+.news a:hover { color: var(--accent-2); text-decoration: underline; }
+.news .src { flex: none; font: 700 11px "Rajdhani", sans-serif; letter-spacing: 0.06em; color: var(--accent); border: 1px solid var(--line); padding: 0 6px; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; }
+.news .fresh a::before { content: "NEW "; font: 700 10px "Orbitron", sans-serif; color: var(--warn); letter-spacing: 0.1em; }
+.news .list { max-height: 420px; }
+.brief { margin-top: 10px; padding: 10px 12px; border-inline-start: 2px solid var(--accent); background: rgba(0, 0, 0, 0.3); font-size: 14px; white-space: pre-wrap; }
+.voicebar { height: 3px; background: var(--soft); margin-top: 8px; overflow: hidden; }
+.voicebar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.2s; }
+
 /* mobile tabs */
 nav.mobile { display: none; }
 
 @media (max-width: 1180px) {
   main { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto 1fr; }
   .center { grid-column: 1 / -1; grid-row: 1; }
-  .col[data-group="school"] { grid-column: 1; grid-row: 2 / span 2; }
-  .col[data-group="life"] { grid-column: 2; grid-row: 2; }
-  .col[data-group="system"] { grid-column: 2; grid-row: 3; }
+  .col[data-group="intel"] { grid-column: 1 / -1; grid-row: 2; }
+  .col[data-group="school"] { grid-column: 1; grid-row: 3 / span 2; }
+  .col[data-group="life"] { grid-column: 2; grid-row: 3; }
+  .col[data-group="system"] { grid-column: 2; grid-row: 4; }
 }
 @media (max-width: 760px) {
   header { padding: 10px 16px; gap: 10px; flex-wrap: wrap; }
@@ -264,7 +277,7 @@ nav.mobile { display: none; }
   #reactor { width: min(100%, 300px); }
   #log { max-height: 30vh; }
   nav.mobile {
-    display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+    display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
     background: rgba(2, 8, 14, 0.94); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
   }
   nav.mobile button { background: none; border: 0; padding: 10px 0 9px; color: var(--muted); font: 700 10px "Orbitron", sans-serif; letter-spacing: 0.12em; cursor: pointer; }
@@ -352,8 +365,21 @@ nav.mobile { display: none; }
         </form>
         <div class="switches">
           <label><input type="checkbox" id="speakAll"> הקרא גם תשובות כתובות</label>
-          <label><input type="checkbox" id="orusVoice"> קול Orus אמיתי (מוגבל ~10 ביום)</label>
+          <span id="voiceInfo"></span>
         </div>
+      </div>
+    </section>
+
+    <!-- news -->
+    <section class="col side" data-group="intel">
+      <div class="panel news" style="animation-delay:.06s"><div class="sweep"></div>
+        <h2><span>INTEL FEED</span><span class="tools">
+          <button class="tab on" data-news="israel">ISRAEL</button><button class="tab" data-news="world">WORLD</button><button class="tab" data-news="osint">OSINT</button>
+        </span></h2>
+        <div class="meta" id="newsMeta"></div>
+        <ul class="list" id="news"></ul>
+        <div class="controls" style="justify-content:flex-start"><button class="btn small primary" id="briefBtn">BRIEF ME</button><button class="btn small" id="newsRefresh">REFRESH</button></div>
+        <div class="brief hidden" id="briefBox"></div>
       </div>
     </section>
 
@@ -396,6 +422,15 @@ nav.mobile { display: none; }
           <button class="btn small" id="refreshBtn">SYNC</button>
         </div>
       </div>
+      <div class="panel" style="animation-delay:.26s"><div class="sweep"></div>
+        <h2><span>VOICE · THIS DEVICE</span></h2>
+        <div class="meta" style="margin-bottom:6px">הכי טוב: דפדפן Edge (קול בריטי טבעי + קול עברי של גבר). באייפון: Daniel.</div>
+        <div class="setting"><span>הקול של ג׳רוויס (אנגלית)</span><select class="input" id="enVoiceSel"></select></div>
+        <div class="setting"><span>שפת התשובות הקוליות</span><select class="input" id="replyLangSel">
+          <option value="auto">כמו השפה שדיברתי</option><option value="en">תמיד אנגלית</option><option value="he">תמיד עברית</option></select></div>
+        <div class="setting"><span>קול בעברית</span><span class="meta" id="heVoiceName">–</span></div>
+        <div class="actions"><button class="btn small" id="testVoiceEn">TEST EN</button><button class="btn small" id="testVoiceHe">TEST HE</button></div>
+      </div>
       <div class="panel" style="animation-delay:.28s"><div class="sweep"></div>
         <h2><span>ACTIVITY</span></h2>
         <ul class="list" id="activity"></ul>
@@ -405,6 +440,7 @@ nav.mobile { display: none; }
 
   <nav class="mobile" id="mobileNav">
     <button class="on" data-show="center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>JARVIS</button>
+    <button data-show="intel"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>INTEL</button>
     <button data-show="school"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>SCHOOL</button>
     <button data-show="life"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zM18 16V11a6 6 0 1 0-12 0v5l-2 2h16z"/></svg>LIFE</button>
     <button data-show="system"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>SYSTEM</button>
@@ -454,7 +490,7 @@ function boot() {
     '> CALIBRATING ARC REACTOR ................... OK',
     '> LINKING GOOGLE CLOUD UPLINK ............... OK',
     '> LOADING SCHOOL DATABASE ................... OK',
-    '> VOICE SYNTHESIS: ' + (store.get('orus', false) ? 'ORUS' : 'LOCAL') + ' ...................... OK',
+    '> VOICE SYNTHESIS MODULE .................... OK',
     '> ALL SYSTEMS ONLINE. WELCOME BACK, SIR.',
   ];
   const fast = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -729,10 +765,10 @@ async function send(text, viaVoice) {
   setMode('thinking');
   const t = typing();
   try {
-    const { reply } = await api('chat', { text, voice: !!viaVoice });
+    const { reply } = await api('chat', { text, voice: !!(viaVoice || $('speakAll').checked), lang: replyLang(viaVoice) });
     t.remove();
     addMsg('jarvis', reply);
-    if (viaVoice || $('speakAll').checked) await speak(reply);
+    if (viaVoice || $('speakAll').checked) await speak(reply, conversation);
     else setMode('idle');
     if (/תזכורת|זכור|remind|remember/i.test(text)) refresh(true);
   } catch (e) {
@@ -742,50 +778,78 @@ async function send(text, viaVoice) {
     conversation = false; syncTalkBtn();
     return;
   }
-  if (conversation) listen();
+  if (conversation && mode !== 'listening') listen();
 }
 $('sayForm').addEventListener('submit', (e) => { e.preventDefault(); const v = $('sayIn').value; $('sayIn').value = ''; send(v, false); });
 $('resetChat').addEventListener('click', async () => { await guarded(() => api('chat_reset'), 'שיחה חדשה'); $('log').innerHTML = ''; });
 $('speakAll').checked = store.get('speakAll', false);
 $('speakAll').addEventListener('change', () => store.set('speakAll', $('speakAll').checked));
-$('orusVoice').checked = store.get('orus', false);
-$('orusVoice').addEventListener('change', () => store.set('orus', $('orusVoice').checked));
 
 /* ================================================================ voice in (speech recognition) */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null;
 const STOP_WORDS = /^(תודה ג.?רוויס|זהו|די|stop|that'?s all|thank you jarvis)[.!]?$/i;
 
-function listen() {
-  if (!SR) { toast('הדפדפן לא תומך בזיהוי דיבור. נסה Chrome או Safari.'); conversation = false; syncTalkBtn(); return; }
-  if (rec) try { rec.abort(); } catch (e) { /* already stopped */ }
-  rec = new SR();
-  rec.lang = speechLang;
-  rec.interimResults = true;
-  rec.continuous = false;
-  let finalText = '';
-  rec.onstart = () => { setMode('listening'); $('heard').textContent = ''; startMicLevel(); };
-  rec.onresult = (e) => {
+/** The language Jarvis should answer in: 'en', 'he', or the language the owner is speaking. */
+function replyLang(viaVoice) {
+  const pref = store.get('replyLang', 'auto');
+  if (pref !== 'auto') return pref;
+  return viaVoice ? (speechLang === 'he-IL' ? 'he' : 'en') : '';
+}
+
+/**
+ * One recognizer for both normal listening and "barge-in" while Jarvis is talking.
+ * While he speaks, anything that isn't his own voice echoing back cuts him off and becomes the next request.
+ */
+function listen(duringSpeech) {
+  if (!SR) { toast('הדפדפן לא תומך בזיהוי דיבור. נסה Chrome, Edge או Safari.'); conversation = false; syncTalkBtn(); return; }
+  if (rec) { rec.onend = null; try { rec.abort(); } catch (e) { /* already stopped */ } }
+  const r = new SR();
+  rec = r;
+  r.lang = speechLang;
+  r.interimResults = true;
+  r.continuous = !!duringSpeech;
+  let finalText = '', barged = !duringSpeech;
+  r.onstart = () => { if (!duringSpeech) { setMode('listening'); $('heard').textContent = ''; startMicLevel(); } };
+  r.onresult = (e) => {
     let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+      if (e.results[i].isFinal) finalText += e.results[i][0].transcript + ' ';
       else interim += e.results[i][0].transcript;
     }
-    $('heard').textContent = finalText || interim;
+    const heard = (finalText + interim).trim();
+    if (!barged) {
+      if (!heard || isEcho(heard)) { finalText = ''; return; }
+      barged = true;                       // the owner is talking over Jarvis: stop and listen
+      stopSpeaking(); setMode('listening'); startMicLevel();
+    }
+    $('heard').textContent = heard;
+    if (duringSpeech && e.results[e.results.length - 1].isFinal) r.stop();
   };
-  rec.onerror = (e) => {
+  r.onerror = (e) => {
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { toast('צריך לאשר גישה למיקרופון'); conversation = false; syncTalkBtn(); }
   };
-  rec.onend = () => {
+  r.onend = () => {
+    if (rec !== r) return;
+    rec = null;
     stopMicLevel();
     const said = finalText.trim();
     $('heard').textContent = '';
-    if (said && STOP_WORDS.test(said)) { conversation = false; syncTalkBtn(); setMode('idle'); speak(speechLang === 'he-IL' ? 'Very well, sir.' : 'As you wish, sir.'); return; }
+    if (!barged) { if (speaking) listen(true); return; } // still Jarvis's turn: keep watching for an interruption
+    if (said && STOP_WORDS.test(said)) { conversation = false; syncTalkBtn(); setMode('idle'); speak(speechLang === 'he-IL' ? 'בסדר גמור, אדוני.' : 'Very well, sir.'); return; }
     if (said) send(said, true);
-    else if (conversation) setTimeout(listen, 250); // silence: keep the line open
+    else if (conversation) setTimeout(() => { if (!rec && !speaking) listen(); }, 250); // silence: keep the line open
     else setMode('idle');
   };
-  try { rec.start(); } catch (e) { setTimeout(listen, 400); }
+  try { r.start(); } catch (e) { setTimeout(() => listen(duringSpeech), 400); }
+}
+
+/** True when the recognizer only heard Jarvis's own words coming back from the speaker. */
+function isEcho(heard) {
+  const norm = (t) => t.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 1);
+  const words = norm(heard), said = new Set(norm(spokenText));
+  if (!words.length) return true;
+  return words.filter((w) => said.has(w)).length / words.length >= 0.5;
 }
 
 function startTalking() {
@@ -796,7 +860,7 @@ function startTalking() {
 }
 function stopAll() {
   conversation = false; syncTalkBtn();
-  if (rec) try { rec.abort(); } catch (e) { /* already stopped */ }
+  if (rec) { rec.onend = null; try { rec.abort(); } catch (e) { /* already stopped */ } rec = null; }
   stopSpeaking(); stopMicLevel(); setMode('idle');
 }
 function syncTalkBtn() {
@@ -805,7 +869,10 @@ function syncTalkBtn() {
 }
 $('talkBtn').addEventListener('click', () => (conversation ? stopAll() : startTalking()));
 $('stopBtn').addEventListener('click', stopAll);
-$('reactor').addEventListener('click', () => (conversation ? stopAll() : startTalking()));
+$('reactor').addEventListener('click', () => {
+  if (speaking) { stopSpeaking(); conversation = true; syncTalkBtn(); listen(); return; } // tap to interrupt
+  conversation ? stopAll() : startTalking();
+});
 $('reactor').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('reactor').click(); } });
 const syncLang = () => { $('langBtn').textContent = speechLang === 'he-IL' ? 'HE' : 'EN'; };
 $('langBtn').addEventListener('click', () => { speechLang = speechLang === 'he-IL' ? 'en-US' : 'he-IL'; store.set('lang', speechLang); syncLang(); });
@@ -816,7 +883,7 @@ let micStream = null, micAnalyser = null;
 async function startMicLevel() {
   if (micStream || !navigator.mediaDevices || /iPhone|iPad|iPod/.test(navigator.userAgent)) return; // iOS: one mic user at a time
   try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true } });
     const ctx = audioCtx();
     micAnalyser = ctx.createAnalyser(); micAnalyser.fftSize = 256;
     ctx.createMediaStreamSource(micStream).connect(micAnalyser);
@@ -827,65 +894,153 @@ function stopMicLevel() {
   micStream = null; micAnalyser = null;
 }
 
-/* ================================================================ voice out */
-let ctxAudio = null, playing = null, speechAnalyser = null;
+/* ================================================================ voice out: one fixed voice per language */
+/*
+ * The browser's own voices: instant, free and unlimited. The owner picks one English voice once and it is
+ * pinned on this device; Hebrew uses the best male Hebrew voice available (Microsoft "Avri" in Edge).
+ * Best Jarvis on each platform: Edge → Microsoft Ryan/Thomas (natural), Apple → Daniel, Chrome → Google UK English Male.
+ */
+const EN_PREFERENCE = [/Microsoft (Ryan|Thomas).*Natural/i, /Microsoft (Guy|Christopher|Eric|Andrew|Brian).*Natural/i,
+  /^Daniel/i, /Google UK English Male/i, /^Arthur/i, /^Oliver/i, /Microsoft (George|Ryan)/i, /^Fred/i];
+let ctxAudio = null, speechAnalyser = null;
+let speaking = false, speakId = 0, spokenText = '';
 function audioCtx() {
   if (!ctxAudio) ctxAudio = new (window.AudioContext || window.webkitAudioContext)();
   return ctxAudio;
 }
 function unlockAudio() { try { const c = audioCtx(); if (c.state === 'suspended') c.resume(); } catch (e) { /* no audio */ } }
 
-function pickVoice() {
-  const vs = speechSynthesis.getVoices();
-  const wanted = ['Daniel', 'Google UK English Male', 'Microsoft Ryan', 'Microsoft George', 'Arthur', 'Oliver', 'Microsoft Thomas'];
-  for (const w of wanted) { const v = vs.find((x) => x.name.indexOf(w) === 0 || x.name.indexOf(w) >= 0); if (v) return v; }
-  return vs.find((v) => v.lang === 'en-GB') || vs.find((v) => /^en/.test(v.lang)) || null;
+function deviceVoices() { return 'speechSynthesis' in window ? speechSynthesis.getVoices() : []; }
+function englishVoices() {
+  const rank = (v) => { const i = EN_PREFERENCE.findIndex((re) => re.test(v.name)); return i < 0 ? 99 : i; };
+  const novelty = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Junior|Ralph|Kathy|Grandma|Grandpa|Rocko|Shelley|Sandy|Flo|Eddy|Reed)\b/i;
+  return deviceVoices().filter((v) => /^en/i.test(v.lang) && !novelty.test(v.name)).sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
 }
-if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
+/** The pinned English voice (falls back to the best one until the owner picks). */
+function englishVoice() {
+  const all = englishVoices(), name = store.get('enVoiceName', '');
+  return all.find((v) => v.name === name) || all[0] || null;
+}
+function hebrewVoice() {
+  const vs = deviceVoices().filter((v) => /^(he|iw)/i.test(v.lang));
+  return vs.find((v) => /Avri/i.test(v.name)) || vs.find((v) => /Natural/i.test(v.name)) || vs[0] || null;
+}
 
-async function speak(text) {
+async function speak(text, listenThrough) {
   stopSpeaking();
-  const hebrew = /[֐-׿]/.test(text);
-  if (store.get('orus', false) && !hebrew) {
-    try { await speakOrus(text); return; } catch (e) { addMsg('sys', 'קול Orus לא זמין כרגע (' + e.message + '), עובר לקול המקומי'); }
+  const id = ++speakId;
+  const clean = text.replace(/[*_#`•]/g, '').trim();
+  if (!clean || !('speechSynthesis' in window)) { setMode('idle'); return; }
+  spokenText = clean;
+  speaking = true;
+  setMode('speaking');
+  if (listenThrough && SR) listen(true); // let the owner cut in
+  const hebrew = /[֐-׿]/.test(clean);
+  // long replies go sentence by sentence: Chrome cuts off utterances longer than ~15 seconds
+  for (const part of sentences(clean)) {
+    if (id !== speakId) return;
+    await speakPart(part, hebrew ? hebrewVoice() : englishVoice(), hebrew ? 'he-IL' : 'en-GB', id);
   }
-  await speakLocal(text, hebrew);
+  if (id !== speakId) return;            // interrupted
+  speaking = false;
+  setMode('idle');
+  if (listenThrough && rec) { rec.onend = null; try { rec.abort(); } catch (e) { /* already stopped */ } rec = null; }
 }
 
-function speakLocal(text, hebrew) {
+/** Sentences, merged so very short ones are not said on their own. */
+function sentences(text) {
+  return (text.match(/[^.!?…]+[.!?…]*\s*/g) || [text]).map((x) => x.trim()).filter(Boolean)
+    .reduce((acc, x) => { if (acc.length && acc[acc.length - 1].length < 40) acc[acc.length - 1] += ' ' + x; else acc.push(x); return acc; }, []);
+}
+
+function speakPart(text, voice, lang, id) {
   return new Promise((resolve) => {
-    if (!('speechSynthesis' in window)) { setMode('idle'); resolve(); return; }
-    const u = new SpeechSynthesisUtterance(text.replace(/[*_#`•]/g, ''));
-    if (hebrew) { u.lang = 'he-IL'; } else { const v = pickVoice(); if (v) u.voice = v; u.lang = v ? v.lang : 'en-GB'; u.pitch = 0.82; u.rate = 0.96; }
-    u.onstart = () => setMode('speaking');
+    if (id !== speakId) { resolve(); return; }
+    const u = new SpeechSynthesisUtterance(text);
+    if (voice) u.voice = voice;
+    u.lang = voice ? voice.lang : lang;
+    // non-natural English voices sound more like Jarvis a little lower and slower
+    if (lang === 'en-GB' && !(voice && /Natural/i.test(voice.name))) { u.pitch = 0.85; u.rate = 0.97; }
     u.onboundary = () => { speechPulse = 1; };
-    u.onend = u.onerror = () => { setMode('idle'); resolve(); };
+    u.onend = u.onerror = () => resolve();
     speechSynthesis.speak(u);
   });
 }
 
-async function speakOrus(text) {
-  setMode('thinking');
-  const { wav } = await api('tts', { text });
-  const bytes = Uint8Array.from(atob(wav), (c) => c.charCodeAt(0));
-  const ctx = audioCtx();
-  const buf = await ctx.decodeAudioData(bytes.buffer);
-  return new Promise((resolve) => {
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    speechAnalyser = ctx.createAnalyser(); speechAnalyser.fftSize = 256;
-    src.connect(speechAnalyser); speechAnalyser.connect(ctx.destination);
-    src.onended = () => { playing = null; speechAnalyser = null; setMode('idle'); resolve(); };
-    playing = src;
-    setMode('speaking');
-    src.start();
-  });
-}
 function stopSpeaking() {
+  speakId++;
+  speaking = false;
   if ('speechSynthesis' in window) speechSynthesis.cancel();
-  if (playing) try { playing.stop(); } catch (e) { /* already stopped */ }
-  playing = null;
+  speechAnalyser = null;
 }
+
+/* voice settings for this device */
+function syncVoiceInfo() {
+  const en = englishVoice(), he = hebrewVoice();
+  $('heVoiceName').textContent = he ? he.name.replace(/ \(.*$/, '').replace(/^Microsoft /, '') : 'אין קול עברי במכשיר';
+  $('voiceInfo').textContent = en ? '🎙 ' + en.name.replace(/ \(.*$/, '').replace(/ Online/, '') : '';
+}
+function fillVoiceSettings() {
+  const en = englishVoice();
+  $('enVoiceSel').innerHTML = englishVoices().map((v) =>
+    `<option value="${esc(v.name)}" ${en && v.name === en.name ? 'selected' : ''}>${esc(v.name.replace(/ - English.*$/, '').replace(/^Microsoft /, ''))} (${esc(v.lang)})</option>`).join('');
+  $('replyLangSel').value = store.get('replyLang', 'auto');
+  syncVoiceInfo();
+}
+$('enVoiceSel').addEventListener('change', () => {
+  store.set('enVoiceName', $('enVoiceSel').value);
+  syncVoiceInfo(); unlockAudio(); speak('Voice protocol updated. At your service, sir.');
+});
+$('replyLangSel').addEventListener('change', () => store.set('replyLang', $('replyLangSel').value));
+$('testVoiceEn').addEventListener('click', () => { unlockAudio(); speak('At your service, sir. All systems are running smoothly.'); });
+$('testVoiceHe').addEventListener('click', () => { unlockAudio(); speak('לשירותך, אדוני. כל המערכות פועלות כרגיל.'); });
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = fillVoiceSettings;
+
+/* ================================================================ news */
+let newsData = null, newsCat = 'israel';
+const seenNews = new Set(store.get('seenNews', []));
+async function loadNews(quiet) {
+  try {
+    newsData = await api('news');
+    renderNews();
+  } catch (e) { if (!quiet) toast('⚠ ' + e.message); }
+}
+function ago(ms) {
+  if (!ms) return '';
+  const m = Math.round((Date.now() - ms) / 60000);
+  return m < 1 ? 'עכשיו' : m < 60 ? 'לפני ' + m + ' דק׳' : m < 1440 ? 'לפני ' + Math.round(m / 60) + ' שע׳' : 'לפני ' + Math.round(m / 1440) + ' ימים';
+}
+function renderNews() {
+  if (!newsData) return;
+  const items = newsData[newsCat] || [];
+  const firstLook = !seenNews.size;
+  $('newsMeta').textContent = 'עודכן ' + (newsData.updated || '') + ' · ' + items.length + ' ידיעות';
+  $('news').innerHTML = items.length ? items.map((it) => {
+    const fresh = !firstLook && !seenNews.has(it.link);
+    return `<li class="${fresh ? 'fresh' : ''}"><span class="src" title="${esc(it.source)}">${esc(it.source)}</span>
+      <span class="grow" dir="auto"><a href="${esc(it.link)}" target="_blank" rel="noopener noreferrer">${esc(it.title)}</a>
+      <div class="meta">${esc(ago(it.time))}</div></span></li>`;
+  }).join('') : '<li class="empty">אין ידיעות כרגע</li>';
+  items.forEach((it) => seenNews.add(it.link));
+  store.set('seenNews', [...seenNews].slice(-400));
+}
+document.querySelectorAll('[data-news]').forEach((b) => b.addEventListener('click', () => {
+  newsCat = b.dataset.news;
+  document.querySelectorAll('[data-news]').forEach((x) => x.classList.toggle('on', x === b));
+  renderNews();
+}));
+$('newsRefresh').addEventListener('click', () => loadNews());
+$('briefBtn').addEventListener('click', async () => {
+  unlockAudio();
+  const lang = store.get('replyLang', 'auto') === 'he' ? 'he' : store.get('replyLang', 'auto') === 'en' ? 'en' : (speechLang === 'he-IL' ? 'he' : 'en');
+  $('briefBtn').disabled = true; setMode('thinking');
+  try {
+    const { text } = await api('news_brief', { lang });
+    $('briefBox').textContent = text; $('briefBox').classList.remove('hidden');
+    await speak(text, conversation);
+  } catch (e) { toast('⚠ ' + e.message); setMode('idle'); }
+  $('briefBtn').disabled = false;
+});
 
 /* ================================================================ state */
 const LABELS = { idle: 'STANDBY', listening: 'LISTENING', thinking: 'PROCESSING', speaking: 'RESPONDING' };
@@ -1041,6 +1196,9 @@ function start() {
   $('remWhen').value = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   refresh();
   setInterval(() => refresh(true), 60000);
+  fillVoiceSettings();
+  loadNews(true);
+  setInterval(() => loadNews(true), 5 * 60000);
   if (!SR) addMsg('sys', 'הדפדפן הזה לא תומך בדיבור. אפשר לכתוב, או לפתוח ב-Chrome / Safari.');
 }
 requestAnimationFrame(bgLoop);
@@ -1084,6 +1242,13 @@ function demoApi(name, p) {
     case 'action': return wait('הדגמה – לא נשלח');
     case 'chat_reset': return wait('ok');
     case 'tts': return Promise.reject(new Error('demo'));
+    case 'news': return wait({ updated: '13:40',
+      israel: [{ title: 'ראשי גוש השינוי: "נפעל מיידית לגיבוש קווי היסוד"', source: 'Ynet מבזקים', link: 'https://www.ynet.co.il', time: Date.now() - 12 * 60000 },
+               { title: 'Defense Ministry to conduct exercise on Highway 35', source: 'Jerusalem Post', link: 'https://www.jpost.com', time: Date.now() - 50 * 60000 }],
+      world: [{ title: 'US strikes Iranian island ahead of midterm elections', source: 'BBC', link: 'https://www.bbc.co.uk', time: Date.now() - 90 * 60000 }],
+      osint: [{ title: 'EU Satellite Imagery Delayed Over Gaza and Parts of West Bank', source: 'Bellingcat', link: 'https://www.bellingcat.com', time: Date.now() - 5 * 3600000 },
+              { title: 'Counter-Drone Laser Weapon Now Guarding Mar-a-Lago', source: 'The War Zone', link: 'https://www.twz.com', time: Date.now() - 8 * 3600000 }] });
+    case 'news_brief': return wait({ text: p.lang === 'en' ? 'Good afternoon, sir. In Israel, coalition talks continue. Abroad, the United States struck an Iranian island. On the defense front, a counter-drone laser now guards Mar-a-Lago.' : 'צהריים טובים, אדוני. בארץ, המגעים הקואליציוניים נמשכים. בעולם, ארצות הברית תקפה אי איראני. ובזירה הביטחונית, לייזר נגד רחפנים מגן כעת על מאר-א-לאגו.' }, 900);
     default: return Promise.reject(new Error('unknown'));
   }
 }
