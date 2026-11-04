@@ -825,7 +825,14 @@ function embeddable(url) {
   return url;
 }
 let winUrl = '';
+// Links from feeds and fetched pages: only real web addresses, never javascript: or data: URLs
+function safeHref(u) { return /^https?:\/\//i.test(String(u || '')) ? u : '#'; }
+// Live sites need scripts and their own origin; reader copies are built here from fetched text and run as this page's
+// origin, so they get no scripts at all (nothing in them can reach the stored login)
+const FRAME_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups allow-presentation';
+const READER_SANDBOX = 'allow-popups allow-popups-to-escape-sandbox';
 function openWindow(url) {
+  $('winFrame').setAttribute('sandbox', FRAME_SANDBOX);
   winUrl = url;
   $('winUrl').textContent = url;
   $('winFrame').removeAttribute('srcdoc'); // srcdoc wins over src; drop a previous reader page
@@ -845,14 +852,15 @@ async function openReader(url) {
     h1{font-size:26px;line-height:1.35;color:${css.getPropertyValue('--accent')};margin:0 0 16px}
     img{max-width:100%;border:1px solid ${css.getPropertyValue('--line')};margin:0 0 18px} p{margin:0 0 14px}
     a{color:${css.getPropertyValue('--accent')}} .muted{color:#6d97ab;font-size:13px}</style></head><body>${body}</body></html>`;
+  $('winFrame').setAttribute('sandbox', READER_SANDBOX);
   $('winFrame').srcdoc = page('<p class="muted">טוען עמוד...</p>');
   try {
     const r = await api('reader', { url });
     $('winFrame').srcdoc = page(`<h1 dir="auto">${esc(r.title)}</h1>${r.image ? `<img src="${esc(r.image)}" alt="">` : ''}` +
       r.paragraphs.map((t) => `<p dir="auto">${esc(t)}</p>`).join('') +
-      `<p class="muted"><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">לכתבה המקורית ↗</a></p>`);
+      `<p class="muted"><a href="${esc(safeHref(r.url))}" target="_blank" rel="noopener noreferrer">לכתבה המקורית ↗</a></p>`);
   } catch (e) {
-    $('winFrame').srcdoc = page(`<p>לא הצלחתי לקרוא את העמוד: ${esc(e.message)}</p><p><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">פתיחה בלשונית חדשה ↗</a></p>`);
+    $('winFrame').srcdoc = page(`<p>לא הצלחתי לקרוא את העמוד: ${esc(e.message)}</p><p><a href="${esc(safeHref(url))}" target="_blank" rel="noopener noreferrer">פתיחה בלשונית חדשה ↗</a></p>`);
   }
 }
 $('winReader').addEventListener('click', () => { if (winUrl) openReader(winUrl); });
@@ -1215,7 +1223,7 @@ function renderNews() {
   $('news').innerHTML = items.length ? items.map((it) => {
     const fresh = !firstLook && !seenNews.has(it.link);
     return `<li class="${fresh ? 'fresh' : ''}"><span class="src" title="${esc(it.source)}">${esc(it.source)}</span>
-      <span class="grow" dir="auto"><a href="${esc(it.link)}" target="_blank" rel="noopener noreferrer">${esc(it.title)}</a>
+      <span class="grow" dir="auto"><a href="${esc(safeHref(it.link))}" target="_blank" rel="noopener noreferrer">${esc(it.title)}</a>
       <div class="meta">${esc(ago(it.time))}</div></span></li>`;
   }).join('') : '<li class="empty">אין ידיעות כרגע</li>';
   items.forEach((it) => seenNews.add(it.link));
