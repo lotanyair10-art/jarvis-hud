@@ -507,6 +507,8 @@ const DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 
 const BOARD = { exams: '📝 מבחנים', events: '🎉 אירועים', calendar: '🗓 לוח שכבה', messages: '📣 הודעות' };
 const VOICES = ['Orus', 'Charon', 'Algenib', 'Fenrir', 'Iapetus', 'Alnilam', 'Gacrux', 'Rasalgethi'];
 
+// Never run inside another site's frame: a page could overlay this one and trick clicks onto the home controls
+if (window.top !== window.self) { document.documentElement.innerHTML = ''; throw new Error('framed'); }
 let conn = store.get('conn', null);   // { url, token } or { demo: true }
 let data = null, ttDay = 'today';
 let mode = 'idle';                    // idle | listening | thinking | speaking
@@ -1144,7 +1146,7 @@ function renderRoom() {
   const lights = real.filter((d) => d.kind === 'light'), acs = real.filter((d) => d.kind === 'thermostat');
   const blinds = real.filter((d) => d.kind === 'blind');
   $('room').innerHTML = lights.map((d) => {
-    const on = lightOn(d.state), lvl = d.state && d.state.level != null ? d.state.level : null;
+    const on = lightOn(d.state), lvl = d.state && d.state.level != null ? Number(d.state.level) : null;
     return `<div class="dev ${on ? 'on' : ''}" data-light="${d.id}" role="button" tabindex="0" aria-pressed="${on}" aria-label="${esc(d.name)}">
       <span class="ico">💡</span><span class="nm">${esc(d.name)}</span>
       <span class="st">${!r.online ? '—' : d.state ? (on ? (lvl != null && lvl < 100 ? lvl + '%' : 'ON') : 'OFF') : '?'}</span>
