@@ -101,6 +101,7 @@ class Bridge:
         self.token_at = 0.0
         self.kinds: dict[int, str] = {}
         self.dimmable: set[int] = set()
+        self.limit = asyncio.Semaphore(8)  # parallel requests to the controller
 
     # ---------------------------------------------------------------- Control4
 
@@ -200,6 +201,13 @@ class Bridge:
             return {"level": await blind.getLevel()}
         raise ValueError(f"Unknown device {device}")
 
+    async def run_safely(self, cmd: dict) -> dict:
+        async with self.limit:
+            try:
+                return {"ok": True, "result": await self.run_command(cmd)}
+            except Exception as e:
+                return {"ok": False, "error": f"{type(e).__name__}: {e}"}
+
     # ---------------------------------------------------------------- Jarvis
 
     async def jarvis(self, session: aiohttp.ClientSession, api: str, **payload) -> dict:
@@ -225,13 +233,14 @@ class Bridge:
                         last_inventory = time.time()
                         log.info("Sent %d devices to Jarvis", len(devices))
                     commands = await self.jarvis(session, "home_poll") or []
-                    for cmd in commands:
-                        try:
-                            result = {"ok": True, "result": await self.run_command(cmd)}
-                        except Exception as e:
-                            result = {"ok": False, "error": f"{type(e).__name__}: {e}"}
-                        log.info("Command %s → %s", cmd, result)
-                        await self.jarvis(session, "home_result", id=cmd["id"], result=result)
+                    if commands:
+                        # all at once (a few at a time for the controller), then one reply with every result:
+                        # a whole-house status is ~80 commands, too slow as one round trip each
+                        results = await asyncio.gather(*(self.run_safely(cmd) for cmd in commands))
+                        await self.jarvis(session, "home_results", results=[
+                            {"id": cmd["id"], "result": res} for cmd, res in zip(commands, results)])
+                        changed = [c for c in commands if c.get("action") != "status"]
+                        log.info("Ran %d commands (%d changes)", len(commands), len(changed))
                 except Exception as e:
                     log.warning("Loop error: %s", e)
                     await asyncio.sleep(5)
