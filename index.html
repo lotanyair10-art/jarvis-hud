@@ -243,6 +243,10 @@ input[type="datetime-local"].input, input[type="time"].input { direction: ltr; c
 #toast.show { opacity: 1; transform: translateX(-50%); }
 
 /* my room */
+.scenes { display: flex; gap: 6px; margin: 0 0 10px; flex-wrap: wrap; }
+.scenes:empty { display: none; }
+.scenes .btn { flex: 1 1 0; min-width: 84px; font-size: 14px; padding: 8px 6px; }
+.scenes .btn.busy { opacity: 0.5; pointer-events: none; }
 .devgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
 .dev {
   border: 1px solid var(--line); background: rgba(0, 0, 0, 0.3); padding: 10px; text-align: center; cursor: pointer;
@@ -421,6 +425,7 @@ nav.mobile { display: none; }
     <section class="col side" data-group="life">
       <div class="panel" style="animation-delay:.1s"><div class="sweep"></div>
         <h2><span>MY ROOM</span><span class="tools"><span class="count" id="roomInfo"></span><button class="tab" id="roomRefresh" title="רענון">SYNC</button></span></h2>
+        <div class="scenes" id="scenes" aria-label="סצנות"></div>
         <div class="devgrid" id="room"><div class="empty">טוען את החדר...</div></div>
       </div>
       <div class="panel" style="animation-delay:.12s"><div class="sweep"></div>
@@ -897,7 +902,7 @@ async function send(text, viaVoice) {
     addMsg('jarvis', reply);
     runActions(actions || []);
     if (changed) refresh(true);
-    if (/אור|מזגן|תריס|light|ac\b|blind|כבה|הדלק|תדליק|תכבה/i.test(text)) loadRoom(true);
+    if (/אור|מזגן|תריס|light|ac\b|blind|כבה|הדלק|תדליק|תכבה|סצנ|הגעתי|לילה|יצאתי|🏠|🌙|👋/i.test(text)) loadRoom(true);
     if (viaVoice || $('speakAll').checked) await speak(reply, conversation);
     else setMode('idle');
   } catch (e) {
@@ -1203,6 +1208,26 @@ $('room').addEventListener('change', (e) => {
 });
 $('roomRefresh').addEventListener('click', () => loadRoom());
 
+/* scenes: the same one-tap buttons as under the Telegram text box */
+async function loadScenes() {
+  try {
+    const list = await api('scenes');
+    $('scenes').innerHTML = list.map((sc) => `<button class="btn" data-scene="${esc(sc.id)}">${esc(sc.label)}</button>`).join('');
+  } catch (e) { $('scenes').innerHTML = ''; }
+}
+$('scenes').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-scene]');
+  if (!b) return;
+  b.classList.add('busy');
+  try {
+    const r = await api('scene_run', { id: b.dataset.scene });
+    toast(r.reply.split('\n').slice(0, 2).join(' – '));
+    logActivity('סצנה: ' + b.textContent);
+    loadRoom(true);
+  } catch (err) { toast('⚠ ' + err.message); }
+  b.classList.remove('busy');
+});
+
 /* ================================================================ news */
 let newsData = null, newsCat = 'israel';
 const seenNews = new Set(store.get('seenNews', []));
@@ -1406,6 +1431,7 @@ function start() {
   fillVoiceSettings();
   loadNews(true);
   loadRoom(true);
+  loadScenes();
   setInterval(() => loadRoom(true), 2 * 60000);
   setInterval(() => loadNews(true), 5 * 60000);
   if (!SR) addMsg('sys', 'הדפדפן הזה לא תומך בדיבור. אפשר לכתוב, או לפתוח ב-Chrome / Safari.');
@@ -1460,6 +1486,10 @@ function demoApi(name, p) {
       { id: 204, name: 'Desk', room: 'Yair Room', kind: 'light', dim: true, state: { level: 60 } },
       { id: 205, name: 'Bed', room: 'Yair Room', kind: 'light', dim: false, state: { on: false } },
       { id: 250, name: 'AC', room: 'Yair Room', kind: 'thermostat', state: { mode: 'Cool', current_c: 25, cool_c: 23 } }]) }, 600);
+    case 'scenes': return wait([{ id: 'home', label: '🏠 הגעתי' }, { id: 'night', label: '🌙 לילה' }, { id: 'away', label: '👋 יצאתי' }]);
+    case 'scene_run':
+      window.__room.filter((d) => d.kind === 'light').forEach((d) => { d.state = { on: p.id === 'home', level: p.id === 'home' ? 100 : 0 }; });
+      return wait({ reply: '🏠 הגעתי\nברוך שובך, אדוני (הדגמה).' }, 500);
     case 'home_cmd': {
       const d = window.__room.find((x) => x.id === p.device_id);
       if (p.action === 'on' || p.action === 'off') d.state = { on: p.action === 'on', level: p.action === 'on' ? 100 : 0 };
