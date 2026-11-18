@@ -101,7 +101,7 @@ class Bridge:
         self.token_at = 0.0
         self.kinds: dict[int, str] = {}
         self.dimmable: set[int] = set()
-        self.limit = asyncio.Semaphore(8)  # parallel requests to the controller
+        self.limit: asyncio.Semaphore | None = None  # made inside the running loop (older Pythons bind it at creation)
 
     # ---------------------------------------------------------------- Control4
 
@@ -220,6 +220,7 @@ class Bridge:
         return out.get("data")
 
     async def run(self) -> None:
+        self.limit = asyncio.Semaphore(8)  # parallel requests to the controller
         await self.connect()
         last_inventory = 0.0
         async with aiohttp.ClientSession() as session:
@@ -237,8 +238,13 @@ class Bridge:
                         # all at once (a few at a time for the controller), then one reply with every result:
                         # a whole-house status is ~80 commands, too slow as one round trip each
                         results = await asyncio.gather(*(self.run_safely(cmd) for cmd in commands))
-                        await self.jarvis(session, "home_results", results=[
-                            {"id": cmd["id"], "result": res} for cmd, res in zip(commands, results)])
+                        try:
+                            await self.jarvis(session, "home_results", results=[
+                                {"id": cmd["id"], "result": res} for cmd, res in zip(commands, results)])
+                        except Exception as e:  # an older Jarvis without the batch call: one by one
+                            log.warning("Batch reply failed (%s), sending results one by one", e)
+                            for cmd, res in zip(commands, results):
+                                await self.jarvis(session, "home_result", id=cmd["id"], result=res)
                         changed = [c for c in commands if c.get("action") != "status"]
                         log.info("Ran %d commands (%d changes)", len(commands), len(changed))
                 except Exception as e:
